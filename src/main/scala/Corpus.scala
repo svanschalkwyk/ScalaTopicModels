@@ -68,16 +68,3 @@ class Corpus(docs:List[String]){
 
 }
 
-object test extends App{
-  val testCorpus=List("hello? hello my name is Alex","I am hello testing my corpus class","Let's see if hello it works")
-
-  val myCorpus=new Corpus(testCorpus)
-
-  myCorpus.initialize(3)
-
-  println(myCorpus.words)
-  println(myCorpus.docTopicCounts)
-  println(myCorpus.wordTopicCounts)
-
-}
-
