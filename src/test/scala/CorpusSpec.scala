@@ -25,4 +25,11 @@ class CorpusSpec extends FlatSpec with Matchers {
     myCorpus.decrementWordTopicCounts("blah",2)
     myCorpus.wordTopicCounts("blah",2) should equal(0)
   }
+
+  val vocabTestDocs=List("hello hello hello","hello hi hi hi hi","bye bye bye")
+  val vocabCorpus=new Corpus(vocabTestDocs)
+  vocabCorpus.getVocabulary("/home/alex/topic_models/",1)
+
+
+
 }
