@@ -26,9 +26,12 @@ class CorpusSpec extends FlatSpec with Matchers {
     myCorpus.wordTopicCounts("blah",2) should equal(0)
   }
 
-  val vocabTestDocs=List("hello hello hello","hello hi hi hi hi","bye bye bye")
-  val vocabCorpus=new Corpus(vocabTestDocs)
-  vocabCorpus.getVocabulary("/home/alex/topic_models/",1)
+  it should "not have any stopwords in the vocabulary" in {
+    val vocabTestDocs=List("hello hello hello the the the Toronto Toronto ","hello hi hi hi hi a a toronto a","bye bye bye you you you in in toronto in ")
+    val vocabCorpus=new Corpus(vocabTestDocs)
+    vocabCorpus.getVocabulary("/home/alex/topic_models/",1)
+    vocabCorpus.vocabulary should not contain("the")
+  }
 
 
 

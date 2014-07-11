@@ -5,6 +5,7 @@ import java.io.File
 import java.io.FileReader
 import edu.stanford.nlp.process.PTBTokenizer
 import edu.stanford.nlp.process.CoreLabelTokenFactory
+import scala.io.Source
 
 /**
  * Created by alex on 24/05/14.
@@ -15,10 +16,10 @@ class Corpus(docs: List[String]) {
   var docTopicCounts: HashMap[(Int, Int), Int] = HashMap.empty
   var wordTopicCounts: HashMap[(String, Int), Int] = HashMap.empty
   var vocabulary: Set[String] = Set.empty
+  val stopWords=Source.fromURL(getClass.getResource("/english_stops_words.txt")).mkString.split("\n").toSet
 
 
   def getVocabulary(filePath: String, threshold: Int) {
-
 
     var wordCounter = HashMap[String, Int]()
 
@@ -32,7 +33,7 @@ class Corpus(docs: List[String]) {
         if (wordCounter.contains(token)) {
           wordCounter += (token -> (wordCounter(token) + 1))
         }
-        else {
+        else if(!stopWords.contains(token)) {
           wordCounter += (token -> 1)
         }
       }
