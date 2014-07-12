@@ -1,53 +1,22 @@
+import java.io.{FileReader, File}
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
-import java.io.File
-import java.io.FileReader
-import edu.stanford.nlp.process.PTBTokenizer
-import edu.stanford.nlp.process.CoreLabelTokenFactory
-import scala.io.Source
+import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 
 /**
  * Created by alex on 24/05/14.
  */
-class Corpus(docs: List[String]) {
+class Corpus(docDirectory: String) {
 
   var words: ListBuffer[Word] = ListBuffer.empty
   var docTopicCounts: HashMap[(Int, Int), Int] = HashMap.empty
   var wordTopicCounts: HashMap[(String, Int), Int] = HashMap.empty
   var vocabulary: Set[String] = Set.empty
-  val stopWords=Source.fromURL(getClass.getResource("/english_stops_words.txt")).mkString.split("\n").toSet
 
-
-  def getVocabulary(filePath: String, threshold: Int) {
-
-    var wordCounter = HashMap[String, Int]()
-
-    def countWords(docFile: File) {
-
-      val tokenizer = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "")
-
-      while (tokenizer.hasNext) {
-        val token = tokenizer.next.value().toLowerCase
-
-        if (wordCounter.contains(token)) {
-          wordCounter += (token -> (wordCounter(token) + 1))
-        }
-        else if(!stopWords.contains(token)) {
-          wordCounter += (token -> 1)
-        }
-      }
-    }
-
-    new File(filePath).listFiles.toIterator.filter(_.isFile).toList.map(docFile => countWords(docFile))
-
-    for ((w, freq) <- wordCounter) {
-      if (freq > threshold) {
-        vocabulary += w
-      }
-    }
+  def getVocabulary(minCountThreshold: Int) {
+    vocabulary = Vocabulary.getVocabulary(docDirectory, minCountThreshold)
   }
-
 
   def incrementDocTopicCounts(doc: Int, topic: Int) {
     if (docTopicCounts.contains((doc, topic))) {
@@ -83,25 +52,32 @@ class Corpus(docs: List[String]) {
   def initialize(numTopics: Int) = {
     var docIndex = 0
 
-    def docProcessor(doc: String) = {
+    def docProcessor(docFile: File) = {
+
       val randomTopicGenerator = new Random
       docIndex += 1
-      //remove all punctuation at end of word
-      for (word <- doc.replaceAll("(\\w+)\\p{Punct}(\\s|$)", "$1$2").split(" ")) {
+
+      val tokenizer = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "")
+
+      while (tokenizer.hasNext) {
+        val token = tokenizer.next.value().toLowerCase()
 
         val topic = randomTopicGenerator.nextInt(numTopics)
 
-        //Assign the word to a random topic
-        words += Word(word, docIndex, topic)
+        if (vocabulary.contains(token)) {
+          //Assign the word to a random topic
+          words += Word(token, docIndex, topic)
 
-        //update docTopic and wordTopic counters
-        incrementDocTopicCounts(docIndex, topic)
-        incrementWordTopicCounts(word, topic)
+          //update docTopic and wordTopic counters
+          incrementDocTopicCounts(docIndex, topic)
+          incrementWordTopicCounts(token, topic)
+        }
+
       }
     }
-    docs.map(doc => docProcessor(doc))
-  }
 
+    new File(docDirectory).listFiles.toIterator.filter(_.isFile).toList.map(docFile => docProcessor(docFile))
+  }
 
 }
 
