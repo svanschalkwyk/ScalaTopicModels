@@ -1,3 +1,5 @@
+package org.scalatopicmodels
+
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 import java.io.{FileReader, File}
 import scala.io.Source

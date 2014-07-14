@@ -1,3 +1,5 @@
+package org.scalatopicmodels
+
 import java.io.{FileReader, File}
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
@@ -12,6 +14,7 @@ class Corpus(docDirectory: String) {
   var words: ListBuffer[Word] = ListBuffer.empty
   var docTopicCounts: HashMap[(Int, Int), Int] = HashMap.empty
   var wordTopicCounts: HashMap[(String, Int), Int] = HashMap.empty
+  var docSize:HashMap[Int,Int]=HashMap.empty
   var vocabulary: Set[String] = Set.empty
 
   def getVocabulary(minCountThreshold: Int) {
@@ -53,13 +56,14 @@ class Corpus(docDirectory: String) {
     var docIndex = 0
 
     def docProcessor(docFile: File) = {
-
+      var dLength=0
       val randomTopicGenerator = new Random
       docIndex += 1
 
       val tokenizer = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "")
 
       while (tokenizer.hasNext) {
+        dLength+=1
         val token = tokenizer.next.value().toLowerCase()
 
         val topic = randomTopicGenerator.nextInt(numTopics)
@@ -74,6 +78,7 @@ class Corpus(docDirectory: String) {
         }
 
       }
+      docSize+=(docIndex -> dLength)
     }
 
     new File(docDirectory).listFiles.toIterator.filter(_.isFile).toList.map(docFile => docProcessor(docFile))

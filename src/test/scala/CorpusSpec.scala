@@ -1,4 +1,5 @@
 import org.scalatest._
+import org.scalatopicmodels.{collapsedGibbs, Corpus, Word}
 
 class CorpusSpec extends FlatSpec with Matchers {
 
@@ -31,5 +32,14 @@ class CorpusSpec extends FlatSpec with Matchers {
   it should "not have any stopwords in the vocabulary" in {
     myCorpus.getVocabulary(1)
     myCorpus.vocabulary should not contain ("the")
+    //println(myCorpus.vocabulary)
   }
+
+
+  var myGibbsLDA=new collapsedGibbs("/home/alex/topic_models",1,5,0.1,0.1)
+
+  myGibbsLDA.gibbsSample
+
+
+
 }
