@@ -36,10 +36,9 @@ class CorpusSpec extends FlatSpec with Matchers {
   }
 
 
-  var myGibbsLDA=new collapsedGibbs("/home/alex/topic_models",1,5,0.1,0.1)
+  var myGibbsLDA = new collapsedGibbs("/home/alex/topic_models", 1, 5, 0.1, 0.1)
 
-  myGibbsLDA.gibbsSample
-
+  myGibbsLDA.gibbsSample(10)
 
 
 }

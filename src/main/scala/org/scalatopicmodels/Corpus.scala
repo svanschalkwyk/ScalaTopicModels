@@ -17,9 +17,12 @@ class Corpus(docDirectory: String) {
   var docSize:HashMap[Int,Int]=HashMap.empty
   var vocabulary: Set[String] = Set.empty
 
+
+
   def getVocabulary(minCountThreshold: Int) {
     vocabulary = Vocabulary.getVocabulary(docDirectory, minCountThreshold)
   }
+
 
   def incrementDocTopicCounts(doc: Int, topic: Int) {
     if (docTopicCounts.contains((doc, topic))) {
