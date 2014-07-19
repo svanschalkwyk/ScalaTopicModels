@@ -3,8 +3,10 @@ Scala Topic Models
 
 A Scala Library that implements various probabilistic topic models.
 
-| Left-Aligned  | Center Aligned  | Right Aligned |
+| Topic Model  | Paper URL  | Progress |
 | :------------ |:---------------:| -----:|
-| col 3 is      | some wordy text | $1600 |
-| col 2 is      | centered        |   $12 |
-| zebra stripes | are neat        |    $1 |
+| Collapsed Gibbs Sampling LDA      | [Probabilistic Topic Models](http://psiexp.ss.uci.edu/research/papers/SteyversGriffithsLSABookFormatted.pdf) | $1600 |
+| Online LDA      | centered        |   $12 |
+| Hierarchical LDA | are neat        |    $1 |
+| Dynamic Topic Models |            |        |
+| Correlated Topic Models |         |        | 
