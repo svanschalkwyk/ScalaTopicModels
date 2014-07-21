@@ -68,15 +68,22 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
   def gibbsSample(numIter: Int) {
 
-
-    println(corpus.words)
-
     for (iter <- 0 to numIter) {
       for (word <- corpus.words) {
         var multinomialDist = gibbsDistribution(word)
 
+        var oldTopic = word.topic
         //reassign word to topic determined by sample
         word.topic = multinomialDist.draw()
+
+        //increment count to due to reassignment to new topic
+        corpus.incrementWordTopicCounts(word.token, word.topic)
+        corpus.incrementDocTopicCounts(word.doc, word.topic)
+
+        //decrement counts of old topic assignment
+        corpus.decrementWordTopicCounts(word.token, oldTopic)
+        corpus.decrementDocTopicCounts(word.doc, oldTopic)
+
 
       }
 
@@ -86,3 +93,5 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
 
 }
+
+
