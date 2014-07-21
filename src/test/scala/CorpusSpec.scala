@@ -38,7 +38,10 @@ class CorpusSpec extends FlatSpec with Matchers {
 
   var myGibbsLDA = new collapsedGibbs("/home/alex/topic_models", 1, 5, 0.1, 0.1)
 
+  println(myGibbsLDA.corpus.docTopicCounts)
   myGibbsLDA.gibbsSample(10)
+  println(myGibbsLDA.corpus.docTopicCounts)
+
 
 
 }
