@@ -1,12 +1,13 @@
 package org.scalatopicmodels
 
 import breeze.stats.distributions.Multinomial
-import breeze.linalg.{sum, DenseVector}
+import breeze.linalg.{DenseMatrix, sum, DenseVector}
 
 /**
  * Created by alex on 12/07/14.
  */
 class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: Double, beta: Double) {
+
 
   //create corpus instance
   val corpus = new Corpus(docDirectory)
@@ -14,6 +15,10 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
   //if vocabulary is not provided, create one from the documents themselves.
   corpus.getVocabulary(vocabThreshold)
   corpus.initialize(K)
+
+  //initialize parameter matrices
+  val theta=DenseMatrix.zeros[Double](corpus.docSize.size,K)
+  val phi=DenseMatrix.zeros[Double](K,corpus.vocabulary.size)
 
   def gibbsDistribution(word: Word): Multinomial[DenseVector[Double], Int] = {
 
