@@ -10,27 +10,28 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
 
   //create corpus instance
-  val corpus = new Corpus(docDirectory)
+  val corpus = new Corpus(docDirectory,vocabThreshold)
 
   //if vocabulary is not provided, create one from the documents themselves.
-  corpus.getVocabulary(vocabThreshold)
+  //corpus.getVocabulary(vocabThreshold)
   corpus.initialize(K)
 
   //initialize parameter matrices
-  val theta=DenseMatrix.zeros[Double](corpus.docSize.size,K)
-  val phi=DenseMatrix.zeros[Double](K,corpus.vocabulary.size)
+  //val theta=DenseMatrix.zeros[Double](corpus.docSize.size,K)
+  //val phi=DenseMatrix.zeros[Double](K,corpus.vocabulary.size)
 
   def gibbsDistribution(word: Word): Multinomial[DenseVector[Double], Int] = {
 
     var multinomialParams: List[Double] = List.empty
 
-    var wAssignedToTopic = 0
-    var wordsInDocWAssignedtoTopic = 0
+    var wAssignedToTopic = 0.0
+    var wordsInDocWAssignedtoTopic = 0.0
 
     //Iterate over topics
-    for (topic <- 1 to K) {
+    for (topic <- 0 to K-1) {
 
       //Total instances of this word assigned to this topic not counting this instance
+      /*
       if (corpus.wordTopicCounts.contains((word.token, topic))) {
         wAssignedToTopic = corpus.wordTopicCounts((word.token, topic))
 
@@ -39,15 +40,28 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
           wAssignedToTopic -= 1
         }
       }
+      */
+
+      wAssignedToTopic=corpus.topicWordMatrix(topic,corpus.vocabulary(word.token))
+
+
 
       //Total instances of this topic
+      /*
       var totalAssignedtoTopic = corpus.words.filter(x => x.topic == topic).size
       //If this instance is assigned to this topic, subtract one
       if (word.topic == topic) {
         totalAssignedtoTopic -= 1
       }
+      */
+
+      var totalAssignedtoTopic=sum(corpus.topicWordMatrix(topic,::).t)
+
+
 
       //Total instances assigned to this topic in this instances document not including this instance
+
+      /*
       if (corpus.docTopicCounts.contains((word.doc, topic))) {
         wordsInDocWAssignedtoTopic = corpus.docTopicCounts((word.doc, topic))
         //If this instance is assigned to this topic, subtract one
@@ -55,9 +69,20 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
           wordsInDocWAssignedtoTopic -= 1
         }
       }
+      */
+      wordsInDocWAssignedtoTopic=corpus.docTopicMatrix(word.doc,topic)
+
+      if(word.topic==topic){
+        wAssignedToTopic -= 1
+        totalAssignedtoTopic = totalAssignedtoTopic-1.0
+        wordsInDocWAssignedtoTopic -= 1
+      }
+
 
       //Total words in this instances document, not including itself
-      var totalWordsInDocW = corpus.docSize(word.doc) - 1
+      //var totalWordsInDocW = corpus.docSize(word.doc) - 1
+      val totalWordsInDocW:Double=sum(corpus.docTopicMatrix(word.doc,::).t) - 1.0
+
 
       var paramK = ((wAssignedToTopic + beta) / (totalAssignedtoTopic + corpus.vocabulary.size * beta)) * (wordsInDocWAssignedtoTopic + alpha) / (totalWordsInDocW + K * alpha)
 
@@ -82,12 +107,18 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
         word.topic = multinomialDist.draw()
 
         //increment count to due to reassignment to new topic
-        corpus.incrementWordTopicCounts(word.token, word.topic)
-        corpus.incrementDocTopicCounts(word.doc, word.topic)
+        //corpus.incrementWordTopicCounts(word.token, word.topic)
+        corpus.topicWordMatrix(word.topic,corpus.vocabulary(word.token))+=1.0
+
+        //corpus.incrementDocTopicCounts(word.doc, word.topic)
+        corpus.docTopicMatrix(word.doc,word.topic)+=1.0
 
         //decrement counts of old topic assignment
-        corpus.decrementWordTopicCounts(word.token, oldTopic)
-        corpus.decrementDocTopicCounts(word.doc, oldTopic)
+        //corpus.decrementWordTopicCounts(word.token, oldTopic)
+        corpus.topicWordMatrix(oldTopic,corpus.vocabulary(word.token))-=1.0
+
+        //corpus.decrementDocTopicCounts(word.doc, oldTopic)
+        corpus.docTopicMatrix(word.doc,oldTopic)-=1.0
 
 
       }

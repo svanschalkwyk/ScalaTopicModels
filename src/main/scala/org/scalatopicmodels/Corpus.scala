@@ -1,24 +1,31 @@
 package org.scalatopicmodels
 
-import java.io.{FileReader, File}
+import java.io.{File, FileReader}
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
+import breeze.linalg.DenseMatrix
 
 /**
  * Created by alex on 24/05/14.
  */
-class Corpus(docDirectory: String) {
+class Corpus(docDirectory: String,minCountThreshold:Int) {
 
   var words: ListBuffer[Word] = ListBuffer.empty
-  var docTopicCounts: HashMap[(Int, Int), Int] = HashMap.empty
-  var wordTopicCounts: HashMap[(String, Int), Int] = HashMap.empty
-  var docSize:HashMap[Int,Int]=HashMap.empty
-  var vocabulary: Set[String] = Set.empty
+  val numDocs=new File(docDirectory).listFiles.size
+  var docTopicMatrix:DenseMatrix[Double]=_
+  //var docTopicCounts: HashMap[(Int, Int), Int] = HashMap.empty
+  //var wordTopicCounts: HashMap[(String, Int), Int] = HashMap.empty
+  var topicWordMatrix:DenseMatrix[Double]=_
+  //var docSize:HashMap[Int,Int]=HashMap.empty
+  //var vocabulary: Set[String] = Set.empty
+  var vocabulary:HashMap[String,Int]=Vocabulary.getVocabulary(docDirectory, minCountThreshold)
 
 
 
+
+  /*
   def getVocabulary(minCountThreshold: Int) {
     vocabulary = Vocabulary.getVocabulary(docDirectory, minCountThreshold)
   }
@@ -54,9 +61,15 @@ class Corpus(docDirectory: String) {
       wordTopicCounts += ((word, topic) -> (wordTopicCounts((word, topic)) - 1))
     }
   }
-
+*/
   def initialize(numTopics: Int) = {
-    var docIndex = 0
+    var docIndex = -1
+
+    docTopicMatrix=DenseMatrix.zeros(numDocs,numTopics)
+    topicWordMatrix=DenseMatrix.zeros(numTopics,vocabulary.size)
+
+    println(docTopicMatrix.rows,docTopicMatrix.cols)
+
 
     def docProcessor(docFile: File) = {
       var dLength=0
@@ -76,15 +89,22 @@ class Corpus(docDirectory: String) {
           words += Word(token, docIndex, topic)
 
           //update docTopic and wordTopic counters
-          incrementDocTopicCounts(docIndex, topic)
-          incrementWordTopicCounts(token, topic)
+          //incrementDocTopicCounts(docIndex, topic)
+          //incrementWordTopicCounts(token, topic)
+          docTopicMatrix(docIndex,topic)+=1.0
+          topicWordMatrix(topic,vocabulary(token))+=1.0
+
         }
 
       }
-      docSize+=(docIndex -> dLength)
+      //docSize+=(docIndex -> dLength)
     }
 
     new File(docDirectory).listFiles.toIterator.filter(_.isFile).toList.map(docFile => docProcessor(docFile))
+
+
+
+
   }
 
 }
