@@ -40,9 +40,25 @@ class CorpusSpec extends FlatSpec with Matchers {
 
   var myGibbsLDA = new collapsedGibbs("/home/alex/topic_models", 1, 5, 0.1, 0.1)
 
+  println("doc/topic matrix")
   println(myGibbsLDA.corpus.docTopicMatrix)
-  myGibbsLDA.gibbsSample(10)
+  println("topic/word matrix")
+  println(myGibbsLDA.corpus.topicWordMatrix)
+  myGibbsLDA.gibbsSample(1000)
+  println("doc/topic matrix after sampling")
   println(myGibbsLDA.corpus.docTopicMatrix)
+  println("topic/word matrix after sampling")
+  println(myGibbsLDA.corpus.topicWordMatrix)
+  myGibbsLDA.getPhi
+  myGibbsLDA.getTheta
+  println("")
+  println(myGibbsLDA.corpus.docTopicMatrix)
+  println("Top 10 words for each topic")
+  myGibbsLDA.printTopics(10)
+  myGibbsLDA.printTopicProps(2,0.1)
+
+
+
 
 
 

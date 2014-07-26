@@ -2,7 +2,6 @@ package org.scalatopicmodels
 
 import breeze.stats.distributions.Multinomial
 import breeze.linalg.{sum, DenseVector}
-import scala.collection.immutable.HashMap
 
 
 /**
@@ -88,7 +87,6 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
   }
 
-
   def getTheta {
 
     //we turn the counts matrix into a probability matrix
@@ -114,19 +112,16 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
     for (topic <- 0 to corpus.topicWordMatrix.rows - 1) {
 
-      //sort columns to order my most likely words
-      var sortMap: HashMap[Int, Double] = HashMap.empty
-
-      for ((prob, wordIdx) <- corpus.topicWordMatrix(topic, ::).t.toArray.zipWithIndex) {
-        sortMap += (wordIdx -> prob)
-      }
-
-      val topWords = sortMap.toList.sortBy(-_._2).take(numWords)
-
-      println("Topic #" + topic + ": " + topWords.map(x => (reverseVocab(x._1), x._2)))
+      //tie probability to column index, then sort by probabiltiy, take the top numWords, map column index to corresponding word
+      println("Topic #" + topic + ":  " + corpus.topicWordMatrix(topic, ::).t.toArray.zipWithIndex.sortBy(-_._1).take(numWords).toList.map(x => reverseVocab(x._2)))
 
     }
+  }
 
+  def printTopicProps(docIndex: Int, probCutoff: Double) {
+
+    //tie probability to column index, filter probabilities by probCutoff
+    println(corpus.docTopicMatrix(docIndex, ::).t.toArray.zipWithIndex.filter(x => x._1 > probCutoff).toList)
 
   }
 
