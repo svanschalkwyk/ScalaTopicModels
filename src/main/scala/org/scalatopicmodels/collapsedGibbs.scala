@@ -1,7 +1,7 @@
 package org.scalatopicmodels
 
 import breeze.stats.distributions.Multinomial
-import breeze.linalg.{DenseMatrix, sum, DenseVector}
+import breeze.linalg.{sum, DenseVector}
 
 /**
  * Created by alex on 12/07/14.
@@ -10,15 +10,10 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
 
   //create corpus instance
-  val corpus = new Corpus(docDirectory,vocabThreshold)
+  val corpus = new Corpus(docDirectory, vocabThreshold)
 
-  //if vocabulary is not provided, create one from the documents themselves.
-  //corpus.getVocabulary(vocabThreshold)
+  //Randomly initialize topic assignments
   corpus.initialize(K)
-
-  //initialize parameter matrices
-  //val theta=DenseMatrix.zeros[Double](corpus.docSize.size,K)
-  //val phi=DenseMatrix.zeros[Double](K,corpus.vocabulary.size)
 
   def gibbsDistribution(word: Word): Multinomial[DenseVector[Double], Int] = {
 
@@ -28,67 +23,34 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
     var wordsInDocWAssignedtoTopic = 0.0
 
     //Iterate over topics
-    for (topic <- 0 to K-1) {
+    for (topic <- 0 to K - 1) {
 
-      //Total instances of this word assigned to this topic not counting this instance
-      /*
-      if (corpus.wordTopicCounts.contains((word.token, topic))) {
-        wAssignedToTopic = corpus.wordTopicCounts((word.token, topic))
-
-        //If this current instance is assigned to this topic, subtract one from count
-        if (word.topic == topic) {
-          wAssignedToTopic -= 1
-        }
-      }
-      */
-
-      wAssignedToTopic=corpus.topicWordMatrix(topic,corpus.vocabulary(word.token))
-
-
+      //Total instances of this word assigned to this topic
+      wAssignedToTopic = corpus.topicWordMatrix(topic, corpus.vocabulary(word.token))
 
       //Total instances of this topic
-      /*
-      var totalAssignedtoTopic = corpus.words.filter(x => x.topic == topic).size
-      //If this instance is assigned to this topic, subtract one
+      var totalAssignedtoTopic = sum(corpus.topicWordMatrix(topic, ::).t)
+
+      //Total instances assigned to this topic in this instance's document
+      wordsInDocWAssignedtoTopic = corpus.docTopicMatrix(word.doc, topic)
+
+      //if this word is already assigned the this topic, decrement counts
       if (word.topic == topic) {
-        totalAssignedtoTopic -= 1
-      }
-      */
-
-      var totalAssignedtoTopic=sum(corpus.topicWordMatrix(topic,::).t)
-
-
-
-      //Total instances assigned to this topic in this instances document not including this instance
-
-      /*
-      if (corpus.docTopicCounts.contains((word.doc, topic))) {
-        wordsInDocWAssignedtoTopic = corpus.docTopicCounts((word.doc, topic))
-        //If this instance is assigned to this topic, subtract one
-        if (word.topic == topic) {
-          wordsInDocWAssignedtoTopic -= 1
-        }
-      }
-      */
-      wordsInDocWAssignedtoTopic=corpus.docTopicMatrix(word.doc,topic)
-
-      if(word.topic==topic){
         wAssignedToTopic -= 1
-        totalAssignedtoTopic = totalAssignedtoTopic-1.0
+        totalAssignedtoTopic -= 1.0
         wordsInDocWAssignedtoTopic -= 1
       }
 
+      //Total words in this instance's document, not including itself
+      val totalWordsInDocW: Double = sum(corpus.docTopicMatrix(word.doc, ::).t) - 1.0
 
-      //Total words in this instances document, not including itself
-      //var totalWordsInDocW = corpus.docSize(word.doc) - 1
-      val totalWordsInDocW:Double=sum(corpus.docTopicMatrix(word.doc,::).t) - 1.0
-
-
-      var paramK = ((wAssignedToTopic + beta) / (totalAssignedtoTopic + corpus.vocabulary.size * beta)) * (wordsInDocWAssignedtoTopic + alpha) / (totalWordsInDocW + K * alpha)
+      //element of multinomial parameter associated with this topic
+      val paramK = ((wAssignedToTopic + beta) / (totalAssignedtoTopic + corpus.vocabulary.size * beta)) * (wordsInDocWAssignedtoTopic + alpha) / (totalWordsInDocW + K * alpha)
 
       multinomialParams = multinomialParams ++ List(paramK)
     }
 
+    //normalize parameters
     val unnormalized = DenseVector(multinomialParams.toArray)
     val normalizingConstant = sum(unnormalized)
     val normalizedParams = unnormalized :/ normalizingConstant
@@ -100,27 +62,24 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
     for (iter <- 0 to numIter) {
       for (word <- corpus.words) {
-        var multinomialDist = gibbsDistribution(word)
+        val multinomialDist = gibbsDistribution(word)
 
-        var oldTopic = word.topic
+        val oldTopic = word.topic
+
         //reassign word to topic determined by sample
         word.topic = multinomialDist.draw()
 
-        //increment count to due to reassignment to new topic
-        //corpus.incrementWordTopicCounts(word.token, word.topic)
-        corpus.topicWordMatrix(word.topic,corpus.vocabulary(word.token))+=1.0
+        //If topic assignment has changed, must also change count matrices
+        if (oldTopic != word.topic) {
+          //increment counts to due to reassignment to new topic
+          corpus.topicWordMatrix(word.topic, corpus.vocabulary(word.token)) += 1.0
+          corpus.docTopicMatrix(word.doc, word.topic) += 1.0
 
-        //corpus.incrementDocTopicCounts(word.doc, word.topic)
-        corpus.docTopicMatrix(word.doc,word.topic)+=1.0
+          //decrement counts of old topic assignment that has been changed
+          corpus.topicWordMatrix(oldTopic, corpus.vocabulary(word.token)) -= 1.0
+          corpus.docTopicMatrix(word.doc, oldTopic) -= 1.0
 
-        //decrement counts of old topic assignment
-        //corpus.decrementWordTopicCounts(word.token, oldTopic)
-        corpus.topicWordMatrix(oldTopic,corpus.vocabulary(word.token))-=1.0
-
-        //corpus.decrementDocTopicCounts(word.doc, oldTopic)
-        corpus.docTopicMatrix(word.doc,oldTopic)-=1.0
-
-
+        }
       }
 
     }

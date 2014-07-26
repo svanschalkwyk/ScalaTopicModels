@@ -7,8 +7,9 @@ class CorpusSpec extends FlatSpec with Matchers {
   //val testDoc2=Source.fromURL(getClass.getResource("/testDocs/doc2.txt")).mkString
   //val testDoc3=Source.fromURL(getClass.getResource("/testDocs/doc3.txt")).mkString
 
-  val myCorpus = new Corpus("/home/alex/topic_models")
+  val myCorpus = new Corpus("/home/alex/topic_models",1)
 
+  /*
   "docTopicCounts" should "be incremented for the specified document/Topic pair when incrementDocTopic is called on it" in {
     myCorpus.incrementDocTopicCounts(1, 2)
     myCorpus.docTopicCounts(1, 2) should equal(1)
@@ -35,12 +36,13 @@ class CorpusSpec extends FlatSpec with Matchers {
     //println(myCorpus.vocabulary)
   }
 
+*/
 
   var myGibbsLDA = new collapsedGibbs("/home/alex/topic_models", 1, 5, 0.1, 0.1)
 
-  println(myGibbsLDA.corpus.docTopicCounts)
+  println(myGibbsLDA.corpus.docTopicMatrix)
   myGibbsLDA.gibbsSample(10)
-  println(myGibbsLDA.corpus.docTopicCounts)
+  println(myGibbsLDA.corpus.docTopicMatrix)
 
 
 

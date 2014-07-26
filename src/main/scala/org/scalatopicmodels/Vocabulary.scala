@@ -12,12 +12,12 @@ object Vocabulary {
 
   val stopWords = Source.fromURL(getClass.getResource("/stopWords/english_stops_words.txt")).mkString.split("\n").toSet
 
-  def getVocabulary(filePath: String, threshold: Int): HashMap[String,Int] = {
+  def getVocabulary(filePath: String, threshold: Int): HashMap[String, Int] = {
 
     //var vocabulary: Set[String] = Set.empty
-    var vocabulary:HashMap[String,Int]=HashMap.empty
+    var vocabulary: HashMap[String, Int] = HashMap.empty
 
-    var wordCounter:HashMap[String, Int] = HashMap.empty
+    var wordCounter: HashMap[String, Int] = HashMap.empty
 
     def countWords(docFile: File) {
 
@@ -39,9 +39,7 @@ object Vocabulary {
 
     for ((w, freq) <- wordCounter) {
       if (freq >= threshold) {
-        //vocabulary += w
-
-        vocabulary+=(w -> vocabulary.size)
+        vocabulary += (w -> vocabulary.size)
 
       }
     }
