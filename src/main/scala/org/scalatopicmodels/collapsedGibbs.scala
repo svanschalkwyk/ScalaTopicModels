@@ -87,6 +87,27 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
   }
 
 
+  def getTheta{
+
+    //we turn the counts matrix into a probability matrix
+    for (doc <- 0 to corpus.docTopicMatrix.rows-1){
+      corpus.docTopicMatrix(doc,::):=(corpus.docTopicMatrix(doc,::)+alpha)/(sum(corpus.docTopicMatrix(doc,::).t)+ K*alpha)
+    }
+
+  }
+
+  def getPhi{
+
+    //we turn the counts matrix into a probability matrix
+    for (topic <- 0 to corpus.topicWordMatrix.rows-1){
+      corpus.topicWordMatrix(topic,::):=(corpus.topicWordMatrix(topic,::)+beta)/(sum(corpus.topicWordMatrix(topic,::).t)+ corpus.topicWordMatrix.cols*beta)
+    }
+
+  }
+
+
+
+
 }
 
 
