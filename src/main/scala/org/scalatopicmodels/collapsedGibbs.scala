@@ -2,6 +2,8 @@ package org.scalatopicmodels
 
 import breeze.stats.distributions.Multinomial
 import breeze.linalg.{sum, DenseVector}
+import scala.collection.immutable.HashMap
+
 
 /**
  * Created by alex on 12/07/14.
@@ -87,25 +89,46 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
   }
 
 
-  def getTheta{
+  def getTheta {
 
     //we turn the counts matrix into a probability matrix
-    for (doc <- 0 to corpus.docTopicMatrix.rows-1){
-      corpus.docTopicMatrix(doc,::):=(corpus.docTopicMatrix(doc,::)+alpha)/(sum(corpus.docTopicMatrix(doc,::).t)+ K*alpha)
+    for (doc <- 0 to corpus.docTopicMatrix.rows - 1) {
+      corpus.docTopicMatrix(doc, ::) := (corpus.docTopicMatrix(doc, ::) + alpha) / (sum(corpus.docTopicMatrix(doc, ::).t) + K * alpha)
     }
 
   }
 
-  def getPhi{
+  def getPhi {
 
     //we turn the counts matrix into a probability matrix
-    for (topic <- 0 to corpus.topicWordMatrix.rows-1){
-      corpus.topicWordMatrix(topic,::):=(corpus.topicWordMatrix(topic,::)+beta)/(sum(corpus.topicWordMatrix(topic,::).t)+ corpus.topicWordMatrix.cols*beta)
+    for (topic <- 0 to corpus.topicWordMatrix.rows - 1) {
+      corpus.topicWordMatrix(topic, ::) := (corpus.topicWordMatrix(topic, ::) + beta) / (sum(corpus.topicWordMatrix(topic, ::).t) + corpus.topicWordMatrix.cols * beta)
     }
 
   }
 
+  def printTopics(numWords: Int) {
 
+    //want to actually show the words, so we need to extract strings from ids
+    val reverseVocab = corpus.reverseVocab
+
+    for (topic <- 0 to corpus.topicWordMatrix.rows - 1) {
+
+      //sort columns to order my most likely words
+      var sortMap: HashMap[Int, Double] = HashMap.empty
+
+      for ((prob, wordIdx) <- corpus.topicWordMatrix(topic, ::).t.toArray.zipWithIndex) {
+        sortMap += (wordIdx -> prob)
+      }
+
+      val topWords = sortMap.toList.sortBy(-_._2).take(numWords)
+
+      println("Topic #" + topic + ": " + topWords.map(x => (reverseVocab(x._1), x._2)))
+
+    }
+
+
+  }
 
 
 }

@@ -58,5 +58,9 @@ class Corpus(docDirectory: String, minCountThreshold: Int) {
 
   }
 
+  def reverseVocab: HashMap[Int, String] = {
+    vocabulary.map(_ swap)
+  }
+
 }
 

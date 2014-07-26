@@ -29,7 +29,7 @@ object Vocabulary {
         if (wordCounter.contains(token)) {
           wordCounter += (token -> (wordCounter(token) + 1))
         }
-        else if (!stopWords.contains(token)) {
+        else if (!stopWords.contains(token) && token.length>2) {
           wordCounter += (token -> 1)
         }
       }
