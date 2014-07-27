@@ -1,4 +1,4 @@
-package org.scalatopicmodels
+package org.scalatopicmodels.collapsedGibbsLDA
 
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 import java.io.{FileReader, File}

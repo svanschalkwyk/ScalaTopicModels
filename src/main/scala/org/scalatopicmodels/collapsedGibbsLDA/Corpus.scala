@@ -1,4 +1,4 @@
-package org.scalatopicmodels
+package org.scalatopicmodels.collapsedGibbsLDA
 
 import java.io.{File, FileReader}
 import scala.collection.immutable.HashMap
