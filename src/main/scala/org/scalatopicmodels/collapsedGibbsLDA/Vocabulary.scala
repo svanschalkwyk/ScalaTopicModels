@@ -14,7 +14,6 @@ object Vocabulary {
 
   def getVocabulary(filePath: String, threshold: Int): HashMap[String, Int] = {
 
-    //var vocabulary: Set[String] = Set.empty
     var vocabulary: HashMap[String, Int] = HashMap.empty
 
     var wordCounter: HashMap[String, Int] = HashMap.empty

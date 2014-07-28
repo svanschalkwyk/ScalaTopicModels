@@ -27,13 +27,13 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
     for (topic <- 0 to K - 1) {
 
       //Total instances of this word assigned to this topic
-      wAssignedToTopic = corpus.topicWordMatrix(topic, corpus.vocabulary(word.token))
+      wAssignedToTopic = corpus.getTopicWord(topic, corpus.vocabulary(word.token))
 
       //Total instances of this topic
-      var totalAssignedtoTopic = sum(corpus.topicWordMatrix(topic, ::).t)
+      var totalAssignedtoTopic = sum(corpus.getTopicWordRow(topic))
 
       //Total instances assigned to this topic in this instance's document
-      wordsInDocWAssignedtoTopic = corpus.docTopicMatrix(word.doc, topic)
+      wordsInDocWAssignedtoTopic = corpus.getDocTopic(word.doc, topic)
 
       //if this word is already assigned the this topic, decrement counts
       if (word.topic == topic) {
@@ -43,7 +43,7 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
       }
 
       //Total words in this instance's document, not including itself
-      val totalWordsInDocW: Double = sum(corpus.docTopicMatrix(word.doc, ::).t) - 1.0
+      val totalWordsInDocW: Double = sum(corpus.getDocTopicRow(word.doc)) - 1.0
 
       //element of multinomial parameter associated with this topic
       val paramK = ((wAssignedToTopic + beta) / (totalAssignedtoTopic + corpus.vocabulary.size * beta)) * (wordsInDocWAssignedtoTopic + alpha) / (totalWordsInDocW + K * alpha)
@@ -72,13 +72,14 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
         //If topic assignment has changed, must also change count matrices
         if (oldTopic != word.topic) {
+
           //increment counts to due to reassignment to new topic
-          corpus.topicWordMatrix(word.topic, corpus.vocabulary(word.token)) += 1.0
-          corpus.docTopicMatrix(word.doc, word.topic) += 1.0
+          corpus.incrementTopicWord(word.topic, corpus.vocabulary(word.token))
+          corpus.incrementDocTopic(word.doc, word.topic)
 
           //decrement counts of old topic assignment that has been changed
-          corpus.topicWordMatrix(oldTopic, corpus.vocabulary(word.token)) -= 1.0
-          corpus.docTopicMatrix(word.doc, oldTopic) -= 1.0
+          corpus.decrementTopicWord(oldTopic, corpus.vocabulary(word.token))
+          corpus.decrementDocTopic(word.doc, oldTopic)
 
         }
       }
@@ -91,7 +92,9 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
     //we turn the counts matrix into a probability matrix
     for (doc <- 0 to corpus.docTopicMatrix.rows - 1) {
+
       corpus.docTopicMatrix(doc, ::) := (corpus.docTopicMatrix(doc, ::) + alpha) / (sum(corpus.docTopicMatrix(doc, ::).t) + K * alpha)
+
     }
 
   }
@@ -100,7 +103,9 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
     //we turn the counts matrix into a probability matrix
     for (topic <- 0 to corpus.topicWordMatrix.rows - 1) {
+
       corpus.topicWordMatrix(topic, ::) := (corpus.topicWordMatrix(topic, ::) + beta) / (sum(corpus.topicWordMatrix(topic, ::).t) + corpus.topicWordMatrix.cols * beta)
+
     }
 
   }

@@ -5,7 +5,7 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
-import breeze.linalg.DenseMatrix
+import breeze.linalg.{DenseMatrix, DenseVector}
 
 /**
  * Created by alex on 24/05/14.
@@ -18,6 +18,29 @@ class Corpus(docDirectory: String, minCountThreshold: Int) {
   var topicWordMatrix: DenseMatrix[Double] = _
   var vocabulary: HashMap[String, Int] = Vocabulary.getVocabulary(docDirectory, minCountThreshold)
 
+  def getDocTopic(doc:Int,topic:Int):Double=docTopicMatrix(doc,topic)
+
+  def getTopicWord(topic:Int,word:Int):Double=topicWordMatrix(topic,word)
+
+  def getDocTopicRow(doc:Int):DenseVector[Double]=docTopicMatrix(doc,::).t
+
+  def getTopicWordRow(topic:Int):DenseVector[Double]=topicWordMatrix(topic,::).t
+
+  def incrementDocTopic(doc: Int, topic: Int) {
+    docTopicMatrix(doc, topic) += 1.0
+  }
+
+  def incrementTopicWord(topic: Int, word: Int) {
+    topicWordMatrix(topic, word) += 1.0
+  }
+
+  def decrementDocTopic(doc: Int, topic: Int) {
+    docTopicMatrix(doc, topic) -= 1.0
+  }
+
+  def decrementTopicWord(topic: Int, word: Int) {
+    topicWordMatrix(topic, word) -= 1.0
+  }
 
   def initialize(numTopics: Int) = {
     var docIndex = -1
@@ -54,7 +77,6 @@ class Corpus(docDirectory: String, minCountThreshold: Int) {
     }
 
     new File(docDirectory).listFiles.toIterator.filter(_.isFile).toList.map(docFile => docProcessor(docFile))
-
 
   }
 
