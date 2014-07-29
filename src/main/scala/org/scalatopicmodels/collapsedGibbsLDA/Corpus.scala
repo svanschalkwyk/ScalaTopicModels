@@ -12,11 +12,19 @@ import breeze.linalg.{DenseMatrix, DenseVector}
  */
 class Corpus(docDirectory: String, minCountThreshold: Int) {
 
-  var words: ListBuffer[Word] = ListBuffer.empty
-  val numDocs = new File(docDirectory).listFiles.size
-  var docTopicMatrix: DenseMatrix[Double] = _
-  var topicWordMatrix: DenseMatrix[Double] = _
+  private var words: ListBuffer[Word] = ListBuffer.empty
+  private val numDocs = new File(docDirectory).listFiles.size
+  private var docTopicMatrix: DenseMatrix[Double] = _
+  private var topicWordMatrix: DenseMatrix[Double] = _
   var vocabulary: HashMap[String, Int] = Vocabulary.getVocabulary(docDirectory, minCountThreshold)
+
+  def getWords:ListBuffer[Word]=words
+
+  def getNumDocs:Int=numDocs
+
+  def getDocTopicMatrix:DenseMatrix[Double]=docTopicMatrix
+
+  def getTopicWordMatrix:DenseMatrix[Double]=topicWordMatrix
 
   def getDocTopic(doc:Int,topic:Int):Double=docTopicMatrix(doc,topic)
 

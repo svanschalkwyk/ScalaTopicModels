@@ -9,7 +9,6 @@ import breeze.linalg.{sum, DenseVector}
  */
 class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: Double, beta: Double) {
 
-
   //create corpus instance
   val corpus = new Corpus(docDirectory, vocabThreshold)
 
@@ -62,7 +61,7 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
   def gibbsSample(numIter: Int) {
 
     for (iter <- 0 to numIter) {
-      for (word <- corpus.words) {
+      for (word <- corpus.getWords) {
         val multinomialDist = gibbsDistribution(word)
 
         val oldTopic = word.topic
@@ -91,9 +90,9 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
   def getTheta {
 
     //we turn the counts matrix into a probability matrix
-    for (doc <- 0 to corpus.docTopicMatrix.rows - 1) {
+    for (doc <- 0 to corpus.getNumDocs - 1) {
 
-      val countToProb:DenseVector[Double]=((corpus.docTopicMatrix(doc, ::) + alpha) / (sum(corpus.docTopicMatrix(doc, ::).t) + K * alpha)).t
+      val countToProb:DenseVector[Double]=((corpus.getDocTopicRow(doc).t + alpha) / (sum(corpus.getDocTopicRow(doc)) + K * alpha)).t
       corpus.setDocTopicRow(doc,countToProb)
 
     }
@@ -103,9 +102,9 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
   def getPhi {
 
     //we turn the counts matrix into a probability matrix
-    for (topic <- 0 to corpus.topicWordMatrix.rows - 1) {
+    for (topic <- 0 to K - 1) {
 
-      val countToProb:DenseVector[Double]=((corpus.topicWordMatrix(topic, ::) + beta) / (sum(corpus.topicWordMatrix(topic, ::).t) + corpus.topicWordMatrix.cols * beta)).t
+      val countToProb:DenseVector[Double]=((corpus.getTopicWordRow(topic).t + beta) / (sum(corpus.getTopicWordRow(topic)) + corpus.vocabulary.size * beta)).t
       corpus.setTopicWordRow(topic,countToProb)
 
     }
@@ -117,7 +116,7 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
     //want to actually show the words, so we need to extract strings from ids
     val reverseVocab = corpus.reverseVocab
 
-    for (topic <- 0 to corpus.topicWordMatrix.rows - 1) {
+    for (topic <- 0 to K - 1) {
 
       //tie probability to column index, then sort by probabiltiy, take the top numWords, map column index to corresponding word
       println("Topic #" + topic + ":  " + corpus.getTopicWordRow(topic).toArray.zipWithIndex.sortBy(-_._1).take(numWords).toList.map(x => reverseVocab(x._2)))
