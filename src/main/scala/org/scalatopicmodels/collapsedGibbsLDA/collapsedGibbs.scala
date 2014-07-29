@@ -93,7 +93,9 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
     //we turn the counts matrix into a probability matrix
     for (doc <- 0 to corpus.docTopicMatrix.rows - 1) {
 
-      corpus.docTopicMatrix(doc, ::) := (corpus.docTopicMatrix(doc, ::) + alpha) / (sum(corpus.docTopicMatrix(doc, ::).t) + K * alpha)
+      //corpus.docTopicMatrix(doc, ::) := (corpus.docTopicMatrix(doc, ::) + alpha) / (sum(corpus.docTopicMatrix(doc, ::).t) + K * alpha)
+      val countToProb:DenseVector[Double]=((corpus.docTopicMatrix(doc, ::) + alpha) / (sum(corpus.docTopicMatrix(doc, ::).t) + K * alpha)).t
+      corpus.setDocTopicRow(doc,countToProb)
 
     }
 
@@ -104,7 +106,9 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
     //we turn the counts matrix into a probability matrix
     for (topic <- 0 to corpus.topicWordMatrix.rows - 1) {
 
-      corpus.topicWordMatrix(topic, ::) := (corpus.topicWordMatrix(topic, ::) + beta) / (sum(corpus.topicWordMatrix(topic, ::).t) + corpus.topicWordMatrix.cols * beta)
+      //corpus.topicWordMatrix(topic, ::) := (corpus.topicWordMatrix(topic, ::) + beta) / (sum(corpus.topicWordMatrix(topic, ::).t) + corpus.topicWordMatrix.cols * beta)
+      val countToProb:DenseVector[Double]=((corpus.topicWordMatrix(topic, ::) + beta) / (sum(corpus.topicWordMatrix(topic, ::).t) + corpus.topicWordMatrix.cols * beta)).t
+      corpus.setTopicWordRow(topic,countToProb)
 
     }
 

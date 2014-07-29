@@ -42,6 +42,14 @@ class Corpus(docDirectory: String, minCountThreshold: Int) {
     topicWordMatrix(topic, word) -= 1.0
   }
 
+  def setDocTopicRow(rowIdx:Int,newRow:DenseVector[Double]){
+    docTopicMatrix(rowIdx,::):=newRow.t
+  }
+
+  def setTopicWordRow(rowIdx:Int,newRow:DenseVector[Double]){
+    topicWordMatrix(rowIdx,::):=newRow.t
+  }
+
   def initialize(numTopics: Int) = {
     var docIndex = -1
 
