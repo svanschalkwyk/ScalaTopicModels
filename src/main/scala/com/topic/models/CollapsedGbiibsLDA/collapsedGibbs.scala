@@ -1,4 +1,4 @@
-package org.scalatopicmodels.collapsedGibbsLDA
+package com.topic.models.CollapsedGbiibsLDA
 
 import breeze.stats.distributions.Multinomial
 import breeze.linalg.{sum, DenseVector}

@@ -1,4 +1,4 @@
-package org.scalatopicmodels.collapsedGibbsLDA
+package com.topic.models.CollapsedGbiibsLDA
 
 /**
  * Created by alex on 31/05/14.

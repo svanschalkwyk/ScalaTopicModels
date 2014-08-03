@@ -1,4 +1,4 @@
-package org.scalatopicmodels.collapsedGibbsLDA
+package com.topic.models.CollapsedGbiibsLDA
 
 import java.io.{File, FileReader}
 import scala.collection.immutable.HashMap
@@ -6,6 +6,7 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 import breeze.linalg.{DenseMatrix, DenseVector}
+
 
 /**
  * Corpus class for collapsed Gibbs Sampling LDA.  Creates and initializes word/topic assignments and vocabulary.
