@@ -8,7 +8,7 @@ import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 import breeze.linalg.{DenseMatrix, DenseVector}
 
 /**
- * Created by alex on 24/05/14.
+ * Corpus class for collapsed Gibbs Sampling LDA.  Creates and initializes word/topic assignments and vocabulary.
  */
 class Corpus(docDirectory: String, minCountThreshold: Int) {
 
@@ -58,6 +58,10 @@ class Corpus(docDirectory: String, minCountThreshold: Int) {
     topicWordMatrix(rowIdx,::):=newRow.t
   }
 
+  /**
+   * Randomly initialize word/topic assignments.
+   * @param numTopics Number of possible topics words can be assigned to.
+   */
   def initialize(numTopics: Int) = {
     var docIndex = -1
 
@@ -93,9 +97,11 @@ class Corpus(docDirectory: String, minCountThreshold: Int) {
     }
 
     new File(docDirectory).listFiles.toIterator.filter(_.isFile).toList.map(docFile => docProcessor(docFile))
-
   }
 
+  /**
+   * Reverse vocabulary so that integer ids are mapped to word strings.
+   */
   def reverseVocab: HashMap[Int, String] = {
     vocabulary.map(_ swap)
   }

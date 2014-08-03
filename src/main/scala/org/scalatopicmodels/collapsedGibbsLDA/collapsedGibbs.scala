@@ -5,7 +5,7 @@ import breeze.linalg.{sum, DenseVector}
 
 
 /**
- * Created by alex on 12/07/14.
+ * Collapsed Gibbs sampling inference algorithmm for Latent Dirichlet Allocation.
  */
 class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: Double, beta: Double) {
 
@@ -15,7 +15,12 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
   //Randomly initialize topic assignments
   corpus.initialize(K)
 
-  private def gibbsDistribution(word: Word): Multinomial[DenseVector[Double], Int] = {
+  /**
+   * For a given word, calculate the conditional distribution over topic assignments to be sampled from.
+   * @param word word whose topic will be inferred from the Gibb's sampler.
+   * @return distribution over topics for the word input.
+   */
+  private[this] def gibbsDistribution(word: Word): Multinomial[DenseVector[Double], Int] = {
 
     var multinomialParams: List[Double] = List.empty
 
@@ -58,7 +63,11 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
     Multinomial(normalizedParams)
   }
 
-  def gibbsSample(numIter: Int) {
+  /**
+   * Gibbs sampler for LDA
+   * @param numIter number of iterations that Gibbs sampler will be run
+   */
+  private[this] def gibbsSample(numIter: Int = 10000) {
 
     for (iter <- 0 to numIter) {
       for (word <- corpus.getWords) {
@@ -87,7 +96,10 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
   }
 
-  def getTheta {
+  /**
+   * Calculate theta matrix directly from doc/topic counts.  Overwrite counts matrix to save memory.
+   */
+  private[this] def getTheta {
 
     //we turn the counts matrix into a probability matrix
     for (doc <- 0 to corpus.getNumDocs - 1) {
@@ -99,7 +111,11 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
   }
 
-  def getPhi {
+
+  /**
+   * Calculate phi matric directly from topic/word counts.  Overwrite counts matrix to save memory.
+   */
+  private[this] def getPhi {
 
     //we turn the counts matrix into a probability matrix
     for (topic <- 0 to K - 1) {
@@ -111,6 +127,22 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
   }
 
+  /**
+   * Perform all inference steps - gibbs sampling, calculating theta matrix, calculating phi matrix.
+   */
+  def inference{
+
+    gibbsSample()
+
+    getTheta
+
+    getPhi
+  }
+
+  /**
+   * Print topics found by LDA algorithm.
+   * @param numWords Determines how many words to display for each topic.
+   */
   def printTopics(numWords: Int) {
 
     //want to actually show the words, so we need to extract strings from ids
@@ -124,6 +156,11 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
     }
   }
 
+  /**
+   * For a given document, display most likely topics occurring in it.
+   * @param docIndex index of document to be analyzed.
+   * @param probCutoff Determines how likely a topic has to be for it to be displayed.
+   */
   def printTopicProps(docIndex: Int, probCutoff: Double) {
 
     //tie probability to column index, filter probabilities by probCutoff

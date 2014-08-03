@@ -6,12 +6,17 @@ import scala.io.Source
 import scala.collection.immutable.HashMap
 
 /**
- * Created by alex on 12/07/14.
+ * Vocabulary object that creates a vocabulary from raw text files.
  */
 object Vocabulary {
 
   val stopWords = Source.fromURL(getClass.getResource("/stopWords/english_stops_words.txt")).mkString.split("\n").toSet
 
+  /**
+   * Create a vocabulary from raw text files.
+   * @param filePath Filepath to directory of text files.
+   * @param threshold Frequency threshold to remove infrequent words.
+   */
   def getVocabulary(filePath: String, threshold: Int): HashMap[String, Int] = {
 
     var vocabulary: HashMap[String, Int] = HashMap.empty
