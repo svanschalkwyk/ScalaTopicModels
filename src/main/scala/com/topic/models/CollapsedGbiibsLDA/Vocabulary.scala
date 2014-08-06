@@ -33,7 +33,7 @@ object Vocabulary {
         if (wordCounter.contains(token)) {
           wordCounter += (token -> (wordCounter(token) + 1))
         }
-        else if (!stopWords.contains(token) && token.length>2 && token.length<15) {
+        else if (!stopWords.contains(token) && token.length>2 && token.length<15 && token!="-lrb-" && token!="-rrb-") {
           wordCounter += (token -> 1)
         }
       }

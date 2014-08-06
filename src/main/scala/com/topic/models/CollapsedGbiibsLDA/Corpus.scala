@@ -5,7 +5,7 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
-import breeze.linalg.{DenseMatrix, DenseVector}
+import breeze.linalg.{Axis, sum, DenseMatrix, DenseVector}
 
 
 /**
@@ -34,6 +34,10 @@ class Corpus(docDirectory: String, minCountThreshold: Int) {
   def getDocTopicRow(doc:Int):DenseVector[Double]=docTopicMatrix(doc,::).t
 
   def getTopicWordRow(topic:Int):DenseVector[Double]=topicWordMatrix(topic,::).t
+
+  def getTopicWordCol(word:Int):DenseVector[Double]=topicWordMatrix(::,word)
+
+  def getTopicSums=sum(topicWordMatrix, Axis._1)
 
   def incrementDocTopic(doc: Int, topic: Int) {
     docTopicMatrix(doc, topic) += 1.0

@@ -27,6 +27,8 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
     var wAssignedToTopic = 0.0
     var wordsInDocWAssignedtoTopic = 0.0
 
+    /*
+
     //Iterate over topics
     for (topic <- 0 to K - 1) {
 
@@ -50,15 +52,25 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
       val totalWordsInDocW: Double = sum(corpus.getDocTopicRow(word.doc)) - 1.0
 
       //element of multinomial parameter associated with this topic
-      val paramK = ((wAssignedToTopic + beta) / (totalAssignedtoTopic + corpus.vocabulary.size * beta)) * (wordsInDocWAssignedtoTopic + alpha) / (totalWordsInDocW + K * alpha)
+      //val paramK = ((wAssignedToTopic + beta) / (totalAssignedtoTopic + corpus.vocabulary.size * beta)) * (wordsInDocWAssignedtoTopic + alpha) / (totalWordsInDocW + K * alpha)
+      val paramK =  (wordsInDocWAssignedtoTopic+alpha)*(wAssignedToTopic+beta)/(totalAssignedtoTopic+corpus.vocabulary.size * beta)
 
       multinomialParams = multinomialParams ++ List(paramK)
     }
+    */
+    val docTopicRow:DenseVector[Double]=corpus.getDocTopicRow(word.doc)
+
+    val topicWordCol:DenseVector[Double]=corpus.getTopicWordCol(corpus.vocabulary(word.token))
+
+    val topicSums:DenseVector[Double]=corpus.getTopicSums
+
+    val params=(docTopicRow+alpha):*(topicWordCol+beta)/(topicSums+corpus.vocabulary.size * beta)
 
     //normalize parameters
-    val unnormalized = DenseVector(multinomialParams.toArray)
-    val normalizingConstant = sum(unnormalized)
-    val normalizedParams = unnormalized :/ normalizingConstant
+    //val unnormalized = DenseVector(multinomialParams.toArray)
+    //val normalizingConstant = sum(unnormalized)
+    val normalizingConstant = sum(params)
+    val normalizedParams = params :/ normalizingConstant
 
     Multinomial(normalizedParams)
   }
@@ -67,10 +79,16 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
    * Gibbs sampler for LDA
    * @param numIter number of iterations that Gibbs sampler will be run
    */
-  private[this] def gibbsSample(numIter: Int = 10000) {
+  private[this] def gibbsSample(numIter: Int = 200) {
 
     for (iter <- 0 to numIter) {
+
+      //if(iter%10==0){
+        println(iter)
+      //}
+
       for (word <- corpus.getWords) {
+        //println(word.token)
         val multinomialDist = gibbsDistribution(word)
 
         val oldTopic = word.topic
