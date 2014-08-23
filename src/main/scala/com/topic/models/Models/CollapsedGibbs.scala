@@ -9,17 +9,10 @@ import com.topic.models.Word.Word
 /**
  * Collapsed Gibbs sampling inference algorithmm for Latent Dirichlet Allocation.
  */
-class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: Double, beta: Double) extends CollapsedLDACorpus(K, docDirectory, vocabThreshold) with TopicModel {
-
-  //create corpus instance
-  //val corpus = new Corpus(docDirectory, vocabThreshold)
+class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: Double, beta: Double) extends CollapsedLDACorpus(K, docDirectory, vocabThreshold) with TopicModel {
 
   //Randomly initialize topic assignments
   initialize
-
-  println(docTopicMatrix)
-
-  println(topicWordMatrix)
 
   /**
    * For a given word, calculate the conditional distribution over topic assignments to be sampled from.
@@ -75,7 +68,6 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
         }
       }
-
     }
 
   }
@@ -92,7 +84,6 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
       docTopicMatrix(doc, ::) := countToProb.t
 
     }
-
   }
 
 
@@ -106,8 +97,8 @@ class collapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
       val countToProb: DenseVector[Double] = ((topicWordMatrix(topic, ::) + beta) / (sum(topicWordMatrix(topic, ::).t) + vocabulary.size * beta)).t
       topicWordMatrix(topic, ::) := countToProb.t
-    }
 
+    }
   }
 
   /**
