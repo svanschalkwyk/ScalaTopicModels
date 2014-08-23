@@ -2,8 +2,8 @@ package com.topic.models.Vocabulary
 
 import scala.collection.immutable.HashMap
 import java.io.{FileReader, File}
-import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 import scala.io.Source
+import com.topic.models.Tokenizer.StanfordTokenizer
 
 
 object CountVocab {
@@ -15,7 +15,7 @@ object CountVocab {
  * @param filePath the location of the document files.
  * @param minCount the minimum word frequency for a word to appear in the vocabulary.
  */
-class CountVocab(filePath: String, minCount: Int) extends Vocabulary {
+class CountVocab(filePath: String, minCount: Int) extends StanfordTokenizer with Vocabulary{
 
   val stopWords = Source.fromURL(getClass.getResource("/stopWords/english_stops_words.txt")).mkString.split("\n").toSet
 
@@ -27,10 +27,12 @@ class CountVocab(filePath: String, minCount: Int) extends Vocabulary {
 
     def countWords(docFile: File) {
 
-      val tokenizer = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "")
+      //val tokenizer = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "")
+      val tokenizer = new StanfordTokenizer
+      val tokens = tokenizer.tokenizeFile(docFile)
 
-      while (tokenizer.hasNext) {
-        val token = tokenizer.next.value().toLowerCase
+      while (tokens.hasNext) {
+        val token = tokens.next.value().toLowerCase
 
         if (wordCounter.contains(token)) {
           wordCounter += (token -> (wordCounter(token) + 1))

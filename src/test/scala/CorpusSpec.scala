@@ -1,4 +1,4 @@
-import com.topic.models.Models.CollapsedGibbsLDA.{Word, Corpus, collapsedGibbs}
+import com.topic.models.Models.collapsedGibbs
 import org.scalatest._
 
 class CorpusSpec extends FlatSpec with Matchers {
@@ -7,7 +7,7 @@ class CorpusSpec extends FlatSpec with Matchers {
   //val testDoc2=Source.fromURL(getClass.getResource("/testDocs/doc2.txt")).mkString
   //val testDoc3=Source.fromURL(getClass.getResource("/testDocs/doc3.txt")).mkString
 
-  val myCorpus = new Corpus("/home/alex/topic_models",1)
+  //val myCorpus = new Corpus("/home/alex/topic_models",1)
 
   /*
   "docTopicCounts" should "be incremented for the specified document/Topic pair when incrementDocTopic is called on it" in {
@@ -41,18 +41,18 @@ class CorpusSpec extends FlatSpec with Matchers {
   var myGibbsLDA = new collapsedGibbs("/home/alex/Documents/topic_models_datasets2/", 120, 5, 0.1, 0.1)
 
   println("doc/topic matrix")
-  println(myGibbsLDA.corpus.getDocTopicMatrix)
+  //println(myGibbsLDA.corpus.getDocTopicMatrix)
   println("topic/word matrix")
-  println(myGibbsLDA.corpus.getTopicWordMatrix)
+  //println(myGibbsLDA.corpus.getTopicWordMatrix)
   myGibbsLDA.inference
   println("doc/topic matrix after sampling")
-  println(myGibbsLDA.corpus.getDocTopicMatrix)
+  //println(myGibbsLDA.corpus.getDocTopicMatrix)
   println("topic/word matrix after sampling")
-  println(myGibbsLDA.corpus.getTopicWordMatrix)
+  //println(myGibbsLDA.corpus.getTopicWordMatrix)
   //myGibbsLDA.getPhi
   //myGibbsLDA.getTheta
   println("")
-  println(myGibbsLDA.corpus.getDocTopicMatrix)
+  //println(myGibbsLDA.corpus.getDocTopicMatrix)
   println("Top 10 words for each topic")
   myGibbsLDA.printTopics(10)
   myGibbsLDA.printTopicProps(2,0.1)
