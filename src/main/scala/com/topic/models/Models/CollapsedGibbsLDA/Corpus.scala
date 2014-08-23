@@ -1,4 +1,4 @@
-package com.topic.models.CollapsedGbiibsLDA
+package com.topic.models.Models.CollapsedGibbsLDA
 
 import java.io.{File, FileReader}
 import scala.collection.immutable.HashMap
@@ -6,12 +6,13 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Random
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 import breeze.linalg.{Axis, sum, DenseMatrix, DenseVector}
+import com.topic.models.Tokenizer.StanfordTokenizer
 
 
 /**
  * Corpus class for collapsed Gibbs Sampling LDA.  Creates and initializes word/topic assignments and vocabulary.
  */
-class Corpus(docDirectory: String, minCountThreshold: Int) {
+class Corpus(docDirectory: String, minCountThreshold: Int) extends StanfordTokenizer{
 
   private var words: ListBuffer[Word] = ListBuffer.empty
   private val numDocs = new File(docDirectory).listFiles.size
@@ -81,11 +82,13 @@ class Corpus(docDirectory: String, minCountThreshold: Int) {
       val randomTopicGenerator = new Random
       docIndex += 1
 
-      val tokenizer = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "")
+      //val tokenizer = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "")
+      val tokenizer=new StanfordTokenizer
+      val tokens=tokenizer.tokenizeFile(docFile)
 
-      while (tokenizer.hasNext) {
+      while (tokens.hasNext) {
         dLength += 1
-        val token = tokenizer.next.value().toLowerCase()
+        val token = tokens.next.value().toLowerCase()
 
         val topic = randomTopicGenerator.nextInt(numTopics)
 

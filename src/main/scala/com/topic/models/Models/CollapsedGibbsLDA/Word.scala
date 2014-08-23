@@ -1,4 +1,4 @@
-package com.topic.models.CollapsedGbiibsLDA
+package com.topic.models.Models.CollapsedGibbsLDA
 
 /**
  * Created by alex on 31/05/14.

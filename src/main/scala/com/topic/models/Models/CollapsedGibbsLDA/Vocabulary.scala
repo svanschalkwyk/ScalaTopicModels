@@ -1,4 +1,4 @@
-package com.topic.models.CollapsedGbiibsLDA
+package com.topic.models.Models.CollapsedGibbsLDA
 
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 import java.io.{FileReader, File}
