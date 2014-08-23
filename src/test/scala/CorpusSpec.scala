@@ -1,5 +1,5 @@
+import com.topic.models.CollapsedGbiibsLDA.{Word, Corpus, collapsedGibbs}
 import org.scalatest._
-import org.scalatopicmodels.collapsedGibbsLDA.{Word, Corpus, collapsedGibbs}
 
 class CorpusSpec extends FlatSpec with Matchers {
 
@@ -38,19 +38,19 @@ class CorpusSpec extends FlatSpec with Matchers {
 
 */
 
-  var myGibbsLDA = new collapsedGibbs("/home/alex/topic_models", 1, 5, 0.1, 0.1)
+  var myGibbsLDA = new collapsedGibbs("/home/alex/Documents/topic_models_datasets2/", 120, 5, 0.1, 0.1)
 
   println("doc/topic matrix")
   println(myGibbsLDA.corpus.getDocTopicMatrix)
   println("topic/word matrix")
   println(myGibbsLDA.corpus.getTopicWordMatrix)
-  myGibbsLDA.gibbsSample(1000)
+  myGibbsLDA.inference
   println("doc/topic matrix after sampling")
   println(myGibbsLDA.corpus.getDocTopicMatrix)
   println("topic/word matrix after sampling")
   println(myGibbsLDA.corpus.getTopicWordMatrix)
-  myGibbsLDA.getPhi
-  myGibbsLDA.getTheta
+  //myGibbsLDA.getPhi
+  //myGibbsLDA.getTheta
   println("")
   println(myGibbsLDA.corpus.getDocTopicMatrix)
   println("Top 10 words for each topic")
