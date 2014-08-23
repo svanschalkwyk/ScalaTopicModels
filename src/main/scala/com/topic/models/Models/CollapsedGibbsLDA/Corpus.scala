@@ -7,38 +7,39 @@ import scala.util.Random
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 import breeze.linalg.{Axis, sum, DenseMatrix, DenseVector}
 import com.topic.models.Tokenizer.StanfordTokenizer
+import com.topic.models.Vocabulary.CountVocab
 
 
 /**
  * Corpus class for collapsed Gibbs Sampling LDA.  Creates and initializes word/topic assignments and vocabulary.
  */
-class Corpus(docDirectory: String, minCountThreshold: Int) extends StanfordTokenizer{
+class Corpus(docDirectory: String, minCountThreshold: Int) extends StanfordTokenizer {
 
   private var words: ListBuffer[Word] = ListBuffer.empty
   private val numDocs = new File(docDirectory).listFiles.size
   private var docTopicMatrix: DenseMatrix[Double] = _
   private var topicWordMatrix: DenseMatrix[Double] = _
-  var vocabulary: HashMap[String, Int] = Vocabulary.getVocabulary(docDirectory, minCountThreshold)
+  var vocabulary: HashMap[String, Int] = CountVocab(docDirectory, minCountThreshold).getVocabulary
 
-  def getWords:ListBuffer[Word]=words
+  def getWords: ListBuffer[Word] = words
 
-  def getNumDocs:Int=numDocs
+  def getNumDocs: Int = numDocs
 
-  def getDocTopicMatrix:DenseMatrix[Double]=docTopicMatrix
+  def getDocTopicMatrix: DenseMatrix[Double] = docTopicMatrix
 
-  def getTopicWordMatrix:DenseMatrix[Double]=topicWordMatrix
+  def getTopicWordMatrix: DenseMatrix[Double] = topicWordMatrix
 
-  def getDocTopic(doc:Int,topic:Int):Double=docTopicMatrix(doc,topic)
+  def getDocTopic(doc: Int, topic: Int): Double = docTopicMatrix(doc, topic)
 
-  def getTopicWord(topic:Int,word:Int):Double=topicWordMatrix(topic,word)
+  def getTopicWord(topic: Int, word: Int): Double = topicWordMatrix(topic, word)
 
-  def getDocTopicRow(doc:Int):DenseVector[Double]=docTopicMatrix(doc,::).t
+  def getDocTopicRow(doc: Int): DenseVector[Double] = docTopicMatrix(doc, ::).t
 
-  def getTopicWordRow(topic:Int):DenseVector[Double]=topicWordMatrix(topic,::).t
+  def getTopicWordRow(topic: Int): DenseVector[Double] = topicWordMatrix(topic, ::).t
 
-  def getTopicWordCol(word:Int):DenseVector[Double]=topicWordMatrix(::,word)
+  def getTopicWordCol(word: Int): DenseVector[Double] = topicWordMatrix(::, word)
 
-  def getTopicSums=sum(topicWordMatrix, Axis._1)
+  def getTopicSums = sum(topicWordMatrix, Axis._1)
 
   def incrementDocTopic(doc: Int, topic: Int) {
     docTopicMatrix(doc, topic) += 1.0
@@ -56,12 +57,12 @@ class Corpus(docDirectory: String, minCountThreshold: Int) extends StanfordToken
     topicWordMatrix(topic, word) -= 1.0
   }
 
-  def setDocTopicRow(rowIdx:Int,newRow:DenseVector[Double]){
-    docTopicMatrix(rowIdx,::):=newRow.t
+  def setDocTopicRow(rowIdx: Int, newRow: DenseVector[Double]) {
+    docTopicMatrix(rowIdx, ::) := newRow.t
   }
 
-  def setTopicWordRow(rowIdx:Int,newRow:DenseVector[Double]){
-    topicWordMatrix(rowIdx,::):=newRow.t
+  def setTopicWordRow(rowIdx: Int, newRow: DenseVector[Double]) {
+    topicWordMatrix(rowIdx, ::) := newRow.t
   }
 
   /**
@@ -83,8 +84,8 @@ class Corpus(docDirectory: String, minCountThreshold: Int) extends StanfordToken
       docIndex += 1
 
       //val tokenizer = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "")
-      val tokenizer=new StanfordTokenizer
-      val tokens=tokenizer.tokenizeFile(docFile)
+      val tokenizer = new StanfordTokenizer
+      val tokens = tokenizer.tokenizeFile(docFile)
 
       while (tokens.hasNext) {
         dLength += 1
