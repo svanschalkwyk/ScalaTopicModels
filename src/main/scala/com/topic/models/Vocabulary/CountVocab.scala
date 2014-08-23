@@ -27,7 +27,6 @@ class CountVocab(filePath: String, minCount: Int) extends StanfordTokenizer with
 
     def countWords(docFile: File) {
 
-      //val tokenizer = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "")
       val tokenizer = new StanfordTokenizer
       val tokens = tokenizer.tokenizeFile(docFile)
 
