@@ -29,10 +29,8 @@ class CollapsedLDACorpus(numTopics: Int, docsDirectory: String, minCount: Int) e
       val tokenizer = new StanfordTokenizer
       val tokens = tokenizer.tokenizeFile(docFile)
 
-      while (tokens.hasNext) {
+      for (token <- tokens) {
         dLength += 1
-        val token = tokens.next.value().toLowerCase()
-
         val topic = randomTopicGenerator.nextInt(numTopics)
 
         if (vocabulary.contains(token)) {

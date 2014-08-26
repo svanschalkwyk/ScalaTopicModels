@@ -7,9 +7,7 @@ import java.io.File
  */
 trait Tokenizer {
 
-  type T
+  def tokenizeFile(x: File): List[String]
 
-  def tokenizeFile(x: File): T
-
-  def tokenizeString(x: String): T
+  def tokenizeString(x: String): List[String]
 }
