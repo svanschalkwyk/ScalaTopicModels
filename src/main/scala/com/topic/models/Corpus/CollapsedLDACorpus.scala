@@ -9,15 +9,27 @@ import scala.collection.mutable.ListBuffer
 import com.topic.models.Word.Word
 import scala.collection.immutable.HashMap
 
-class CollapsedLDACorpus(numTopics: Int, docsDirectory: String, minCount: Int) extends StanfordTokenizer with Corpus {
+class CollapsedLDACorpus extends StanfordTokenizer with Corpus {
 
-  protected val vocabulary = CountVocab(docsDirectory, minCount).getVocabulary
+  protected var vocabulary: HashMap[String, Int] = HashMap.empty
+  protected var numTopics: Int = 0
+  protected var docsDirectory: String = ""
   protected var words: ListBuffer[Word] = ListBuffer.empty
-  protected val numDocs = new File(docsDirectory).listFiles.size
-  protected var docTopicMatrix: DenseMatrix[Double] = DenseMatrix.zeros(numDocs, numTopics)
-  protected var topicWordMatrix: DenseMatrix[Double] = DenseMatrix.zeros(numTopics, vocabulary.size)
+  protected var numDocs: Int = 0
+  protected var docTopicMatrix: DenseMatrix[Double] = _
+  protected var topicWordMatrix: DenseMatrix[Double] = _
+
+  def setParams(topics: Int, directory: String, minCount: Int) = {
+    numTopics = topics
+    docsDirectory = directory
+    docTopicMatrix = DenseMatrix.zeros(numDocs, numTopics)
+    topicWordMatrix = DenseMatrix.zeros(numTopics, vocabulary.size)
+    vocabulary = CountVocab(docsDirectory, minCount).getVocabulary
+    numDocs = new File(docsDirectory).listFiles.size
+  }
 
   def initialize = {
+
     var docIndex = -1
 
     def docProcessor(docFile: File) = {
@@ -25,7 +37,6 @@ class CollapsedLDACorpus(numTopics: Int, docsDirectory: String, minCount: Int) e
       val randomTopicGenerator = new Random
       docIndex += 1
 
-      //val tokenizer = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "")
       val tokenizer = new StanfordTokenizer
       val tokens = tokenizer.tokenizeFile(docFile)
 

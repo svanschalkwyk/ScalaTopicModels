@@ -1,4 +1,4 @@
-package com.topic.models.Models.OnlineLDA
+package com.topic.models.Models
 
 import breeze.linalg._
 import breeze.numerics._

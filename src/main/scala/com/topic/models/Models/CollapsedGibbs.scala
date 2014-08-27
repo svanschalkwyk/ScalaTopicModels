@@ -9,9 +9,10 @@ import com.topic.models.Word.Word
 /**
  * Collapsed Gibbs sampling inference algorithmm for Latent Dirichlet Allocation.
  */
-class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: Double, beta: Double) extends CollapsedLDACorpus(K, docDirectory, vocabThreshold) with TopicModel {
+class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: Double, beta: Double) extends CollapsedLDACorpus with TopicModel {
 
   //Randomly initialize topic assignments
+  setParams(K,docDirectory,vocabThreshold)
   initialize
 
   /**

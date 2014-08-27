@@ -6,11 +6,19 @@ import com.topic.models.Vocabulary.CountVocab
 import scala.collection.immutable.HashMap
 
 
-class StreamingCorpus(docsDirectory: String, batchSize: Int, minCount: Int) extends StanfordTokenizer with Corpus {
+class StreamingCorpus extends StanfordTokenizer with Corpus {
 
-  val vocabulary = CountVocab(docsDirectory, minCount).getVocabulary
+  var vocabulary: HashMap[String, Int] = HashMap.empty
+  var batchSize: Int = 0
+  var docsDirectory: String = ""
   var batchFileList: List[List[File]] = List.empty
   var curIndx = 0
+
+  def setParams(directory: String, batch: Int, minC: Int) = {
+    vocabulary = CountVocab(directory, minC).getVocabulary
+    batchSize = batch
+    docsDirectory = directory
+  }
 
   /**
    * Get the list of files to stream through and split them into minibatches.
