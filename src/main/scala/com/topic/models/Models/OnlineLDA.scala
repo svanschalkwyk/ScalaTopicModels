@@ -6,6 +6,7 @@ import breeze.stats.distributions.Gamma
 import breeze.stats.mean
 
 import scala.collection.immutable.HashMap
+import com.topic.models.Corpus.StreamingCorpus
 
 
 /**
@@ -87,14 +88,13 @@ case class LdaState(eta: Double, topics: Int, terms: Int) {
 
 /**
  * class implementing the online LDA topic modeling algorithm.
- * @param corpus List of documents in bag-of-words format.
  * @param numTopics Number of topics for LDA model.
  * @param id2Word Dictionary mapping integer ids to vocabulary words.
  * @param chunkSize Size of mini-batches seen at each step.
  * @param test Set to true if testing, eliminates random intialization.
  */
 
-class OnlineLDA(corpus: List[HashMap[Int, Int]], numTopics: Int, id2Word: HashMap[Int, String], chunkSize: Int, test: Boolean = false) {
+class OnlineLDA(docDirectory: String, numTopics: Int, id2Word: HashMap[Int, String], chunkSize: Int, minFreq: Int, test: Boolean = false) extends StreamingCorpus with TopicModel {
 
   val evalEvery = 10
   val iterations = 50
@@ -108,6 +108,10 @@ class OnlineLDA(corpus: List[HashMap[Int, Int]], numTopics: Int, id2Word: HashMa
 
   val state = LdaState(eta, numTopics, numTerms)
 
+  //Set streaming corpus parameters
+  setParams(docDirectory, chunkSize, minFreq)
+
+
   //If testing, want to keep this non-random
   state.sstats = test match {
     case true => DenseMatrix.zeros[Double](numTopics, numTerms)
@@ -116,7 +120,7 @@ class OnlineLDA(corpus: List[HashMap[Int, Int]], numTopics: Int, id2Word: HashMa
 
   syncState
 
-  update(corpus)
+  update()
 
   /**
    * Get expELogBeta of current state.
@@ -127,28 +131,26 @@ class OnlineLDA(corpus: List[HashMap[Int, Int]], numTopics: Int, id2Word: HashMa
 
   /**
    * Perform E-Step on new mini-batch and use the result to update sstats of current model in M-Step.
-   * @param corpus New mini-batch that will be used to update model.
    */
-  def update(corpus: List[HashMap[Int, Int]]) {
+  def update() = {
 
-    state.numDocs += corpus.length
+    state.numDocs += docsSeen()
 
     var realLen = 0
 
     var other = LdaState(eta, state.sstats.rows, state.sstats.cols)
 
-    for (chunk <- corpus.grouped(chunkSize)) {
+    while (checkIfDone()) {
+
+      val chunk = getNextMiniBatch
+
       val rho = pow(1.0 + numUpdates, -decay)
 
-      realLen += chunk.length
+      realLen += batchSize
 
       eStep(chunk, other)
 
-      //gensim then does 'del chunk'.  Don't think there is a Scala equivalent for this.
-
       mStep(rho, other)
-
-      //gensim then does 'del other'.  Don't think there is a Scala equivalent for this.  We are over-writing it in the next line anyways...
 
       other = LdaState(eta, state.sstats.rows, state.sstats.cols)
 
@@ -175,7 +177,6 @@ class OnlineLDA(corpus: List[HashMap[Int, Int]], numTopics: Int, id2Word: HashMa
 
     for ((doc, idx) <- chunk.zipWithIndex) {
 
-      //Gensim sorts list by wordID, I'm not sure if this is necessary.
       val idCtList = doc.toList.sortBy(_._1)
       val wordIDs = idCtList.map(_._1)
       val cts = idCtList.map(_._2.toDouble)
