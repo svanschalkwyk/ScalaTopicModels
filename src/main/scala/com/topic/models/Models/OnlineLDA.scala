@@ -4,179 +4,65 @@ import breeze.linalg._
 import breeze.numerics._
 import breeze.stats.distributions.Gamma
 import breeze.stats.mean
+import org.apache.spark.rdd.RDD
+import org.apache.spark.SparkContext
 
 import scala.collection.immutable.HashMap
-import com.topic.models.Corpus.StreamingCorpus
-
+import scala.io.Source
 
 /**
- * Created by aminnaar on 2014-07-16.
+ * Created by aminnaar on 2014-08-20.
  */
 
 
-object dirObject {
+class SparkLDA(miniBatchSize: Int, numTopics: Int, decay: Double) {
 
-  /**
-   * Computes expected value of log of vector (or matrix) of Dirichlet random variables.
-   * @param hParam DenseMatrix of Dirichlet random variable
-   * @return Expected value of log of hParam
-   */
-  def dirichletExpectation(hParam: DenseMatrix[Double]): DenseMatrix[Double] = {
+  //Get vocabulary and map each word to a unique ID.
+  val vocabulary = Source
+    .fromInputStream(getClass.getResourceAsStream("/test_vocab3"))
+    .getLines().toList.zipWithIndex.toMap
 
-    if (hParam.rows == 1 || hParam.cols == 1) {
-
-      val innerDigamma = digamma(sum(hParam))
-      return digamma(hParam) - innerDigamma
-    }
-    //Note: Breeze will not allow two applies on the same line so this calculation has to be done in two lines instead of one.
-    val first_term = digamma(hParam)
-    first_term(::, *) - digamma(sum(hParam, Axis._1))
-  }
-
-}
-
-/**
- * case class that holds and updates sstats matrix.
- * @param eta Global parameter for LDA model.
- * @param topics number of topics which determines sstats matrix shape.
- * @param terms number of distinct words in vocabulary which determines sstats matrix shape.
- */
-case class LdaState(eta: Double, topics: Int, terms: Int) {
-
-  var sstats = DenseMatrix.zeros[Double](topics, terms)
-  var numDocs = 0
-
-  /**
-   * Gets lambda parameters given sstats and eta.
-   * @return lambda parameters as DenseMatrix.
-   */
-  def getLambda: DenseMatrix[Double] = {
-    sstats + eta
-  }
-
-  /**
-   * Gets expected value of log of lambda.
-   * @return expected value of log of lambda parameters.
-   */
-  def getELogBeta: DenseMatrix[Double] = {
-    dirObject.dirichletExpectation(getLambda)
-  }
-
-  /**
-   * Blends sstats from all seen documents with sstats from new mini-batch.
-   * @param rhoT parameter affecting the influence of new mini-batch.
-   * @param other LdaState object containing sstats and numDocs of new mini-batch.
-   */
-  def blend(rhoT: Double, other: LdaState) {
-
-    var scale = 1.0
-
-    sstats = sstats :* (1.0 - rhoT)
-
-    if (other.numDocs == 0 || numDocs == other.numDocs) {
-      scale = 1.0
-    }
-    else {
-      scale = 1.0 * (numDocs.toDouble / other.numDocs)
-    }
-
-    sstats = sstats + (other.sstats :* (rhoT * scale))
-
-  }
-
-}
-
-/**
- * class implementing the online LDA topic modeling algorithm.
- * @param numTopics Number of topics for LDA model.
- * @param id2Word Dictionary mapping integer ids to vocabulary words.
- * @param chunkSize Size of mini-batches seen at each step.
- * @param test Set to true if testing, eliminates random intialization.
- */
-
-class OnlineLDA(docDirectory: String, numTopics: Int, id2Word: HashMap[Int, String], chunkSize: Int, minFreq: Int, test: Boolean = false) extends StreamingCorpus with TopicModel {
-
-  val evalEvery = 10
-  val iterations = 50
-  val decay = 0.5
-  val gammaThreshold = 0.001
-  val numTerms = id2Word.size
-  val alpha = 1.0 / numTopics
-  val eta = 1.0 / numTopics
-  var expELogBeta: DenseMatrix[Double] = _
+  //initialise parameters
+  var postsSeen = 0
   var numUpdates = 0
+  var rho = 0.0
+  val numTerms = vocabulary.size
+  val eta = 1.0 / numTopics
+  val alpha = 1.0 / numTopics
+  val gammaThreshold = 0.001
+  val iterations = 100
+  //global parameter
+  var sstats = new DenseMatrix[Double](numTopics, numTerms, Gamma(100.0, 1.0 / 100.0).sample(numTopics * numTerms).toArray)
+  val idToWord = vocabulary.map(_.swap)
 
-  val state = LdaState(eta, numTopics, numTerms)
-
-  //Set streaming corpus parameters
-  setParams(docDirectory, chunkSize, minFreq)
-
-
-  //If testing, want to keep this non-random
-  state.sstats = test match {
-    case true => DenseMatrix.zeros[Double](numTopics, numTerms)
-    case _ => new DenseMatrix[Double](numTopics, numTerms, Gamma(100.0, 1.0 / 100.0).sample(numTopics * numTerms).toArray)
-  }
-
-  syncState
-
-  update()
+  def getLambda = sstats + eta
 
   /**
-   * Get expELogBeta of current state.
+   * Raw text input is transformed into bag-of-words format
+   * @param rawText Raw text input. Presumably a post.
+   * @return Bag-of-words format (i.e. list of (wordID, wordCount) tuples).
    */
-  def syncState {
-    expELogBeta = exp(state.getELogBeta)
+  def getBOW(rawText: String): List[(Int, Int)] = {
+    val textIDs = rawText.split(" ").filter(vocabulary.contains(_)).map(word => vocabulary(word.toLowerCase)).toList
+    textIDs.groupBy(l => l).map(t => (t._1, t._2.length)).toList
   }
 
-  /**
-   * Perform E-Step on new mini-batch and use the result to update sstats of current model in M-Step.
-   */
-  def update() = {
 
-    state.numDocs += docsSeen()
-
-    var realLen = 0
-
-    var other = LdaState(eta, state.sstats.rows, state.sstats.cols)
-
-    while (checkIfDone()) {
-
-      val chunk = getNextMiniBatch
-
-      val rho = pow(1.0 + numUpdates, -decay)
-
-      realLen += batchSize
-
-      eStep(chunk, other)
-
-      mStep(rho, other)
-
-      other = LdaState(eta, state.sstats.rows, state.sstats.cols)
-
-    }
-
-  }
-
-  /**
-   * Infer gamma and sstats parameters for current chunk of mini-batch.
-   * @param chunk Chunk of mini-batch of new documents.
-   * @return gamma and sstats parameters.
-   */
-  private[this] def inference(chunk: List[HashMap[Int, Int]]): (DenseMatrix[Double], DenseMatrix[Double]) = {
+  def eStep(miniBatch: List[List[(Int, Int)]], expELogBeta: DenseMatrix[Double], test: Boolean): (DenseMatrix[Double], DenseMatrix[Double]) = {
 
     //If testing, want to keep this non-random
     val gamma = test match {
-      case true => DenseMatrix.zeros[Double](chunk.length, numTopics) + 1.0
-      case _ => new DenseMatrix[Double](chunk.length, numTopics, Gamma(100.0, 1.0 / 100.0).sample(numTopics * chunk.length).toArray)
+      case true => DenseMatrix.zeros[Double](miniBatch.length, numTopics) + 1.0
+      case _ => new DenseMatrix[Double](miniBatch.length, numTopics, Gamma(100.0, 1.0 / 100.0).sample(numTopics * miniBatch.length).toArray)
     }
 
-    val eLogTheta = dirObject.dirichletExpectation(gamma)
+    val eLogTheta = dirichletExpectation(gamma)
     val expELogTheta = exp(eLogTheta)
     var sstats = DenseMatrix.zeros[Double](numTopics, numTerms)
 
-    for ((doc, idx) <- chunk.zipWithIndex) {
+    for ((doc, idx) <- miniBatch.zipWithIndex) {
 
+      //Gensim sorts list by wordID, I'm not sure if this is necessary.
       val idCtList = doc.toList.sortBy(_._1)
       val wordIDs = idCtList.map(_._1)
       val cts = idCtList.map(_._2.toDouble)
@@ -200,7 +86,7 @@ class OnlineLDA(docDirectory: String, numTopics: Int, id2Word: HashMap[Int, Stri
       }
 
       def thetaUpdate(gD: DenseMatrix[Double]): DenseMatrix[Double] = {
-        exp(dirObject.dirichletExpectation(gD))
+        exp(dirichletExpectation(gD))
       }
 
       def phiUpdate(expETD: DenseMatrix[Double]): DenseMatrix[Double] = {
@@ -245,42 +131,46 @@ class OnlineLDA(docDirectory: String, numTopics: Int, id2Word: HashMap[Int, Stri
 
   }
 
+
   /**
-   * Perform E-Step on chunk of mini-batch.
-   * @param chunk chunk of collection of documents in mini-batch.
-   * @param other LdaState object of mini-batch. Later to be blended with overall LdaState object.
+   * Computes expected value of log of vector (or matrix) of Dirichlet random variables.
+   * @param hParam DenseMatrix of Dirichlet random variable.
+   * @return Expected value of log of hParam.
    */
-  private[this] def eStep(chunk: List[HashMap[Int, Int]], other: LdaState) = {
+  def dirichletExpectation(hParam: DenseMatrix[Double]): DenseMatrix[Double] = {
 
-    val chunkSstats = inference(chunk)._2
-
-    other.sstats = other.sstats + chunkSstats
-
-    other.numDocs = other.numDocs + chunk.size
+    if (hParam.rows == 1 || hParam.cols == 1) {
+      val innerDigamma = digamma(sum(hParam))
+      return digamma(hParam) - innerDigamma
+    }
+    //Note: Breeze will not allow two applies on the same line so this calculation has to be done in two lines instead of one.
+    val first_term = digamma(hParam)
+    first_term(::, *) - digamma(sum(hParam, Axis._1))
   }
 
+
   /**
-   * Perform M-Step where learned parameters from E-Step are used to blend mini-batch with overall model.
-   * @param rho Blending parameter affecting level of influence of mini-batch on overall model.
-   * @param other LdaState object for new mini-batch to be blended with overall LdaState object.
+   * Function that merges the sstat parameter of the current minibatch with the global sstat parameter.
+   * @param rhoT  parameter weighting the influence of the current minibatch's sstat parameter.
+   * @param sstat sstat parameter of current minibatch.
+   * @return Quantity to add to the global sstat parameter.
    */
-  private[this] def mStep(rho: Double, other: LdaState) {
+  def blend(rhoT: Double, sstat: DenseMatrix[Double]): DenseMatrix[Double] = {
 
-    state.blend(rho, other)
+    val scale = postsSeen.toDouble / miniBatchSize
 
-    syncState
-
-    numUpdates += 1
+    sstat :* (rhoT * scale)
   }
 
+
   /**
-   * Print all of the topics learned.
-   * @param numWords Determines how many words to show for each topic, sorted by likelihood.
+   * Print the topics learned by the LDA model.
+   * @param numWords Number of words to display for each topic.
    */
   def showTopics(numWords: Int) {
 
     var sortMap = HashMap[String, Double]()
-    val curLambda = state.getLambda
+    val curLambda: DenseMatrix[Double] = getLambda
 
     for (topic <- 0 to numTopics - 1) {
 
@@ -288,7 +178,7 @@ class OnlineLDA(docDirectory: String, numTopics: Int, id2Word: HashMap[Int, Stri
 
       //Want to sort while keeping track of indexes.  Use a HashMap that is later sorted by value.
       for ((prob, wordId) <- topicProbs.t.toArray.zipWithIndex) {
-        sortMap += (id2Word(wordId) -> prob)
+        sortMap += (idToWord(wordId) -> prob)
       }
       //Now sort by probability, take first n words and print them.
       println("Topic #" + topic + ": " + sortMap.toList.sortBy(-_._2).take(numWords))
@@ -296,84 +186,116 @@ class OnlineLDA(docDirectory: String, numTopics: Int, id2Word: HashMap[Int, Stri
     }
   }
 
-  /**
-   * Method to get the topic proportions for a list of new documents in bow format.
-   * @param doc List of new documents in bow format.
-   * @param probThreshold Probability threshold value for displaying topic.
-   */
-  def topicProportions(doc: List[HashMap[Int, Int]], probThreshold: Double = 0.1) {
-
-    val gamma = inference(doc)._1
-
-    //normalize to probability distribution
-    val topicDist: DenseMatrix[Double] = gamma / sum(gamma)
-
-
-    for ((topicProb, topic) <- topicDist.toDenseVector.toArray.zipWithIndex) {
-      if (topicProb > probThreshold) {
-        println("Topic " + topic + ", probability " + topicProb)
-      }
-    }
-  }
 
   /**
-   * calculate perplexity for test set of documents given the learned model.
-   * @param docs test set of documents.
-   * @return perplexity value.
+   * Compute the perplexity associated with the current minibatch.
+   * @param test Boolean variable indicating if a test is being run.  If so, randomized variables are kept constant.
+   * @return Tuple containing perplexity score and total number of words in the minibatch.
    */
-  def perplexity(docs: List[HashMap[Int, Int]]): Double = {
+  def perplexity(bow: [(Int, Int)], gamma: DenseMatrix[Double], test: Boolean = false): (Double, Double) = {
 
-    val totalWords = sum(docs.map(x => sum(x.values)))
-
-    val perWordBound = bound(docs) / totalWords
-
-    return perWordBound
-  }
-
-  /**
-   * Calculates lower bound on perplexity for the current docs.  Used to assess model performance.
-   * @param docs List of strings where each element is a document.
-   * @return Lower bound on perplexity for docs.
-   */
-  private[this] def bound(docs: List[HashMap[Int, Int]], subsampleRatio: Double = 1.0): Double = {
+    val wordIDs = bow.map(x => x._1)
+    val wordCts = bow.map(x => x._2.toDouble)
 
     var score = 0.0
 
-    val lambda = state.getLambda
+    val eLogTheta = dirichletExpectation(gamma)
+    val expELogTheta = exp(eLogTheta)
 
-    val eLogBeta = dirObject.dirichletExpectation(lambda)
+    val eLogBeta = test match {
+      case true => dirichletExpectation(DenseMatrix((0.92, 1.11, 1.05, 0.99, 0.91, 1.09), (1.04, 1.09, 1.05, 1.03, 1.04, 0.99), (0.97, 1.08, 0.82, 1.11, 0.97, 0.91)))
+      case false => dirichletExpectation(getLambda)
+    }
 
-    for (docBOW <- docs) {
+    val phiNorm = DenseVector.zeros[Double](wordIDs.length)
 
-      val idCtList = docBOW.toList.sortBy(_._1)
-      val wordIDs = idCtList.map(_._1)
-      val cts = idCtList.map(_._2.toDouble)
+    for ((id, id_idx) <- wordIDs.zipWithIndex) {
 
-      val gammaD = inference(List(docBOW))._1
+      var temp = eLogTheta + eLogBeta(::, id).toDenseMatrix
 
-      val eLogThetaD = dirObject.dirichletExpectation(gammaD)
+      var tmax = max(temp)
 
-      for ((id, id_idx) <- wordIDs.zipWithIndex) {
-
-        score += cts(id_idx) * (log(sum(exp(eLogThetaD + eLogBeta(::, id).toDenseMatrix))))
-
-      }
-
-      score += sum((-gammaD + alpha) :* eLogThetaD)
-      score += sum(lgamma(gammaD) - lgamma(alpha))
-      score += lgamma(alpha * numTopics) - lgamma(sum(gammaD))
+      phiNorm(id_idx) = breeze.numerics.log(sum(exp(temp - tmax))) + tmax
 
     }
 
-    score *= subsampleRatio
+    val docCounts = DenseVector(wordCts.toArray)
 
-    score += sum((-lambda + eta) :* eLogBeta)
+    score += sum(docCounts :* phiNorm)
 
-    score += sum(lgamma(lambda) - lgamma(eta))
+    score += sum(((-gamma) + alpha) :* eLogTheta)
 
-    score += sum(-lgamma(sum(lambda, Axis._1)) + lgamma(eta * numTerms.toDouble))
+    score += sum(lgamma(gamma) - lgamma(alpha))
 
-    return score
+    score += sum(-lgamma(sum(gamma, Axis._1)) + lgamma(alpha * numTopics))
+
+    (score, sum(docCounts))
+  }
+
+
+  /**
+   * Function that computes values needed to add to mapReduce output to get final perplexity value.
+   * @param score Output of intermediate perplexity computation.
+   * @return Final perplexity value.
+   */
+  def completePerplexity(score: Double): Double = {
+
+    val docNum = 15000.0
+
+    val lambda = getLambda
+
+    val eLogBeta = dirichletExpectation(lambda)
+
+    var newScore = score * (docNum / miniBatchSize)
+
+    newScore += sum((-lambda + eta) :* eLogBeta)
+
+    newScore += sum(lgamma(lambda) - lgamma(eta))
+
+    newScore += sum(-lgamma(sum(lambda, Axis._1)) + lgamma(eta * vocabulary.size))
+
+    return newScore
+  }
+
+  def inference(mb: List[String], withPerplexity: Boolean = false) = {
+
+    //convert raw text to bag-of-words format in parallel
+    val bow = mb.map(getBOW(_))
+
+
+    //Get global parameter which gets updated after each mini-batch
+    val expELogBeta = exp(dirichletExpectation(getLambda))
+
+    //perfrom E-Step of LDA algorithm in parallel using minibatch and global parameter as input
+    val sstatsGammaTuple = eStep(bow, expELogBeta, false)
+
+    //Use reduce to get update to global parameter
+    val sstatsLocal = sstatsGammaTuple._1
+    val gammaLocal = sstatsGammaTuple._2
+
+    //Get perplexity of current minibatch. Only necessary for model comparison. Slows things down considerably!
+    if (withPerplexity) miniBatchPerplexity(bow, gammaLocal)
+
+    //Blend local update from minibatch with global parameter
+    sstats = sstats + blend(rho, sstatsLocal)
+
+    //update other LDA parameters
+    postsSeen += miniBatchSize
+    numUpdates += 1
+    rho = pow(1.0 + numUpdates, -decay)
+
+  }
+
+  def miniBatchPerplexity(bow: List[List[(Int, Int)]], gamma: DenseMatrix[Double]) {
+    //Get gamma values. Only useful for perplexity computation.
+    //val bowGamma = bowRDD.zip(sstatsGammaTuple.map(x => x._2))
+
+    //compute perplexity for this minibatch
+    val scoreCts = perplexity(bow, gamma)
+    val scoreSum = scoreCts.map(x => x._1)
+    val totalWords = scoreCts.map(x => x._2)
+    val fullPerplexity = completePerplexity(scoreSum)
+    println("Minibatch perplexity: " + exp(-fullPerplexity * miniBatchSize / (D * totalWords)))
   }
 
 }
