@@ -11,13 +11,13 @@ import scala.collection.immutable.HashMap
 
 class CollapsedLDACorpus extends StanfordTokenizer with Corpus {
 
-  protected var vocabulary: HashMap[String, Int] = HashMap.empty
-  protected var numTopics: Int = 0
-  protected var docsDirectory: String = ""
-  protected var words: ListBuffer[Word] = ListBuffer.empty
-  protected var numDocs: Int = 0
-  protected var docTopicMatrix: DenseMatrix[Double] = _
-  protected var topicWordMatrix: DenseMatrix[Double] = _
+  var vocabulary: HashMap[String, Int] = HashMap.empty
+  var numTopics: Int = 0
+  var docsDirectory: String = ""
+  var words: ListBuffer[Word] = ListBuffer.empty
+  var numDocs: Int = 0
+  var docTopicMatrix: DenseMatrix[Double] = _
+  var topicWordMatrix: DenseMatrix[Double] = _
 
   def setParams(topics: Int, directory: String, minCount: Int) = {
     numTopics = topics

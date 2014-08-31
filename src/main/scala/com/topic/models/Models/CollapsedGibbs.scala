@@ -9,11 +9,8 @@ import com.topic.models.Word.Word
 /**
  * Collapsed Gibbs sampling inference algorithmm for Latent Dirichlet Allocation.
  */
-class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: Double, beta: Double) extends CollapsedLDACorpus with TopicModel {
+class CollapsedGibbs(corpus: CollapsedLDACorpus, docDirectory: String, vocabThreshold: Int, K: Int, alpha: Double, beta: Double) extends TopicModel {
 
-  //Randomly initialize topic assignments
-  setParams(K,docDirectory,vocabThreshold)
-  initialize
 
   /**
    * For a given word, calculate the conditional distribution over topic assignments to be sampled from.
@@ -22,13 +19,13 @@ class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
    */
   private[this] def gibbsDistribution(word: Word): Multinomial[DenseVector[Double], Int] = {
 
-    val docTopicRow: DenseVector[Double] = docTopicMatrix(word.doc, ::).t
+    val docTopicRow: DenseVector[Double] = corpus.docTopicMatrix(word.doc, ::).t
 
-    val topicWordCol: DenseVector[Double] = topicWordMatrix(::, vocabulary(word.token))
+    val topicWordCol: DenseVector[Double] = corpus.topicWordMatrix(::, corpus.vocabulary(word.token))
 
-    val topicSums: DenseVector[Double] = sum(topicWordMatrix, Axis._1)
+    val topicSums: DenseVector[Double] = sum(corpus.topicWordMatrix, Axis._1)
 
-    val params = (docTopicRow + alpha) :* (topicWordCol + beta) / (topicSums + vocabulary.size * beta)
+    val params = (docTopicRow + alpha) :* (topicWordCol + beta) / (topicSums + corpus.vocabulary.size * beta)
 
     //normalize parameters
     val normalizingConstant = sum(params)
@@ -47,7 +44,7 @@ class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
 
       println(iter)
 
-      for (word <- words) {
+      for (word <- corpus.words) {
 
         val multinomialDist = gibbsDistribution(word)
 
@@ -60,12 +57,12 @@ class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
         if (oldTopic != word.topic) {
 
           //increment counts to due to reassignment to new topic
-          topicWordMatrix(word.topic, vocabulary(word.token)) += 1.0
-          docTopicMatrix(word.doc, word.topic) += 1.0
+          corpus.topicWordMatrix(word.topic, corpus.vocabulary(word.token)) += 1.0
+          corpus.docTopicMatrix(word.doc, word.topic) += 1.0
 
           //decrement counts of old topic assignment that has been changed
-          topicWordMatrix(oldTopic, vocabulary(word.token)) -= 1.0
-          docTopicMatrix(word.doc, oldTopic) -= 1.0
+          corpus.topicWordMatrix(oldTopic, corpus.vocabulary(word.token)) -= 1.0
+          corpus.docTopicMatrix(word.doc, oldTopic) -= 1.0
 
         }
       }
@@ -79,10 +76,10 @@ class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
   private[this] def getTheta {
 
     //we turn the counts matrix into a probability matrix
-    for (doc <- 0 to numDocs - 1) {
+    for (doc <- 0 to corpus.numDocs - 1) {
 
-      val countToProb: DenseVector[Double] = ((docTopicMatrix(doc, ::) + alpha) / (sum(docTopicMatrix(doc, ::).t) + K * alpha)).t
-      docTopicMatrix(doc, ::) := countToProb.t
+      val countToProb: DenseVector[Double] = ((corpus.docTopicMatrix(doc, ::) + alpha) / (sum(corpus.docTopicMatrix(doc, ::).t) + K * alpha)).t
+      corpus.docTopicMatrix(doc, ::) := countToProb.t
 
     }
   }
@@ -96,8 +93,8 @@ class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
     //we turn the counts matrix into a probability matrix
     for (topic <- 0 to K - 1) {
 
-      val countToProb: DenseVector[Double] = ((topicWordMatrix(topic, ::) + beta) / (sum(topicWordMatrix(topic, ::).t) + vocabulary.size * beta)).t
-      topicWordMatrix(topic, ::) := countToProb.t
+      val countToProb: DenseVector[Double] = ((corpus.topicWordMatrix(topic, ::) + beta) / (sum(corpus.topicWordMatrix(topic, ::).t) + corpus.vocabulary.size * beta)).t
+      corpus.topicWordMatrix(topic, ::) := countToProb.t
 
     }
   }
@@ -121,12 +118,12 @@ class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
   def printTopics(numWords: Int) {
 
     //want to actually show the words, so we need to extract strings from ids
-    val revV = reverseVocab
+    val revV = corpus.reverseVocab
 
     for (topic <- 0 to K - 1) {
 
       //tie probability to column index, then sort by probabiltiy, take the top numWords, map column index to corresponding word
-      println("Topic #" + topic + ":  " + topicWordMatrix(topic, ::).t.toArray.zipWithIndex.sortBy(-_._1).take(numWords).toList.map(x => revV(x._2)))
+      println("Topic #" + topic + ":  " + corpus.topicWordMatrix(topic, ::).t.toArray.zipWithIndex.sortBy(-_._1).take(numWords).toList.map(x => revV(x._2)))
 
     }
   }
@@ -139,7 +136,7 @@ class CollapsedGibbs(docDirectory: String, vocabThreshold: Int, K: Int, alpha: D
   def printTopicProps(docIndex: Int, probCutoff: Double) {
 
     //tie probability to column index, filter probabilities by probCutoff
-    println(docTopicMatrix(docIndex, ::).t.toArray.zipWithIndex.filter(x => x._1 > probCutoff).toList)
+    println(corpus.docTopicMatrix(docIndex, ::).t.toArray.zipWithIndex.filter(x => x._1 > probCutoff).toList)
 
   }
 

@@ -4,25 +4,19 @@ import breeze.linalg._
 import breeze.numerics._
 import breeze.stats.distributions.Gamma
 import breeze.stats.mean
-import org.apache.spark.rdd.RDD
-import org.apache.spark.SparkContext
 
 import scala.collection.immutable.HashMap
-import scala.io.Source
+import com.topic.models.Corpus.StreamingCorpus
 
 /**
  * Created by aminnaar on 2014-08-20.
  */
 
 
-class SparkLDA(miniBatchSize: Int, numTopics: Int, decay: Double) {
-
-  //Get vocabulary and map each word to a unique ID.
-  val vocabulary = Source
-    .fromInputStream(getClass.getResourceAsStream("/test_vocab3"))
-    .getLines().toList.zipWithIndex.toMap
+class SparkLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, decay: Double, docNum: Int) extends TopicModel {
 
   //initialise parameters
+  val vocabulary = corpus.vocabulary
   var postsSeen = 0
   var numUpdates = 0
   var rho = 0.0
@@ -39,7 +33,6 @@ class SparkLDA(miniBatchSize: Int, numTopics: Int, decay: Double) {
 
   /**
    * Raw text input is transformed into bag-of-words format
-   * @param rawText Raw text input. Presumably a post.
    * @return Bag-of-words format (i.e. list of (wordID, wordCount) tuples).
    */
   def getBOW(rawText: String): List[(Int, Int)] = {
@@ -48,13 +41,11 @@ class SparkLDA(miniBatchSize: Int, numTopics: Int, decay: Double) {
   }
 
 
-  def eStep(miniBatch: List[List[(Int, Int)]], expELogBeta: DenseMatrix[Double], test: Boolean): (DenseMatrix[Double], DenseMatrix[Double]) = {
+  def eStep(miniBatch: List[List[(Int, Int)]], expELogBeta: DenseMatrix[Double]): (DenseMatrix[Double], DenseMatrix[Double]) = {
 
     //If testing, want to keep this non-random
-    val gamma = test match {
-      case true => DenseMatrix.zeros[Double](miniBatch.length, numTopics) + 1.0
-      case _ => new DenseMatrix[Double](miniBatch.length, numTopics, Gamma(100.0, 1.0 / 100.0).sample(numTopics * miniBatch.length).toArray)
-    }
+    val gamma = DenseMatrix[Double](miniBatch.length, numTopics, Gamma(100.0, 1.0 / 100.0).sample(numTopics * miniBatch.length).toArray)
+
 
     val eLogTheta = dirichletExpectation(gamma)
     val expELogTheta = exp(eLogTheta)
@@ -68,8 +59,6 @@ class SparkLDA(miniBatchSize: Int, numTopics: Int, decay: Double) {
       val cts = idCtList.map(_._2.toDouble)
 
       val gammaD: DenseMatrix[Double] = gamma(idx, ::).t.toDenseMatrix
-
-      var eLogThetaD = eLogTheta(idx, ::).t.toDenseMatrix
 
       val expELogThetaD: DenseMatrix[Double] = expELogTheta(idx, ::).t.toDenseMatrix
 
@@ -189,39 +178,39 @@ class SparkLDA(miniBatchSize: Int, numTopics: Int, decay: Double) {
 
   /**
    * Compute the perplexity associated with the current minibatch.
-   * @param test Boolean variable indicating if a test is being run.  If so, randomized variables are kept constant.
    * @return Tuple containing perplexity score and total number of words in the minibatch.
    */
-  def perplexity(bow: [(Int, Int)], gamma: DenseMatrix[Double], test: Boolean = false): (Double, Double) = {
-
-    val wordIDs = bow.map(x => x._1)
-    val wordCts = bow.map(x => x._2.toDouble)
+  def perplexity(bow: List[List[(Int, Int)]], gamma: DenseMatrix[Double]): Double = {
 
     var score = 0.0
 
     val eLogTheta = dirichletExpectation(gamma)
-    val expELogTheta = exp(eLogTheta)
 
-    val eLogBeta = test match {
-      case true => dirichletExpectation(DenseMatrix((0.92, 1.11, 1.05, 0.99, 0.91, 1.09), (1.04, 1.09, 1.05, 1.03, 1.04, 0.99), (0.97, 1.08, 0.82, 1.11, 0.97, 0.91)))
-      case false => dirichletExpectation(getLambda)
+    val eLogBeta = dirichletExpectation(getLambda)
+
+    for ((doc, idx) <- bow.zipWithIndex) {
+
+      val wordIDs = doc.map(x => x._1)
+      val wordCts = doc.map(x => x._2.toDouble)
+
+      val phiNorm = DenseVector.zeros[Double](wordIDs.length)
+
+      for ((id, id_idx) <- wordIDs.zipWithIndex) {
+
+        var temp = eLogTheta + eLogBeta(::, id).toDenseMatrix
+
+        var tmax = max(temp)
+
+        phiNorm(id_idx) = breeze.numerics.log(sum(exp(temp - tmax))) + tmax
+
+      }
+
+      val docCounts = DenseVector(wordCts.toArray)
+
+      score += sum(docCounts :* phiNorm)
+
+
     }
-
-    val phiNorm = DenseVector.zeros[Double](wordIDs.length)
-
-    for ((id, id_idx) <- wordIDs.zipWithIndex) {
-
-      var temp = eLogTheta + eLogBeta(::, id).toDenseMatrix
-
-      var tmax = max(temp)
-
-      phiNorm(id_idx) = breeze.numerics.log(sum(exp(temp - tmax))) + tmax
-
-    }
-
-    val docCounts = DenseVector(wordCts.toArray)
-
-    score += sum(docCounts :* phiNorm)
 
     score += sum(((-gamma) + alpha) :* eLogTheta)
 
@@ -229,47 +218,26 @@ class SparkLDA(miniBatchSize: Int, numTopics: Int, decay: Double) {
 
     score += sum(-lgamma(sum(gamma, Axis._1)) + lgamma(alpha * numTopics))
 
-    (score, sum(docCounts))
-  }
+    score = score * (docNum / miniBatchSize)
 
+    score += sum((-getLambda + eta) :* eLogBeta)
 
-  /**
-   * Function that computes values needed to add to mapReduce output to get final perplexity value.
-   * @param score Output of intermediate perplexity computation.
-   * @return Final perplexity value.
-   */
-  def completePerplexity(score: Double): Double = {
+    score += sum(lgamma(getLambda) - lgamma(eta))
 
-    val docNum = 15000.0
+    score += sum(-lgamma(sum(getLambda, Axis._1)) + lgamma(eta * vocabulary.size))
 
-    val lambda = getLambda
-
-    val eLogBeta = dirichletExpectation(lambda)
-
-    var newScore = score * (docNum / miniBatchSize)
-
-    newScore += sum((-lambda + eta) :* eLogBeta)
-
-    newScore += sum(lgamma(lambda) - lgamma(eta))
-
-    newScore += sum(-lgamma(sum(lambda, Axis._1)) + lgamma(eta * vocabulary.size))
-
-    return newScore
+    score
   }
 
   def inference(mb: List[String], withPerplexity: Boolean = false) = {
 
-    //convert raw text to bag-of-words format in parallel
     val bow = mb.map(getBOW(_))
-
 
     //Get global parameter which gets updated after each mini-batch
     val expELogBeta = exp(dirichletExpectation(getLambda))
 
     //perfrom E-Step of LDA algorithm in parallel using minibatch and global parameter as input
-    val sstatsGammaTuple = eStep(bow, expELogBeta, false)
-
-    //Use reduce to get update to global parameter
+    val sstatsGammaTuple = eStep(bow, expELogBeta)
     val sstatsLocal = sstatsGammaTuple._1
     val gammaLocal = sstatsGammaTuple._2
 
@@ -287,15 +255,13 @@ class SparkLDA(miniBatchSize: Int, numTopics: Int, decay: Double) {
   }
 
   def miniBatchPerplexity(bow: List[List[(Int, Int)]], gamma: DenseMatrix[Double]) {
-    //Get gamma values. Only useful for perplexity computation.
-    //val bowGamma = bowRDD.zip(sstatsGammaTuple.map(x => x._2))
 
     //compute perplexity for this minibatch
-    val scoreCts = perplexity(bow, gamma)
-    val scoreSum = scoreCts.map(x => x._1)
-    val totalWords = scoreCts.map(x => x._2)
-    val fullPerplexity = completePerplexity(scoreSum)
-    println("Minibatch perplexity: " + exp(-fullPerplexity * miniBatchSize / (D * totalWords)))
+    val score = perplexity(bow, gamma)
+
+    val totalWords: Double = sum(bow.map(x => sum(x.map(y => y._2))))
+
+    println("Minibatch perplexity: " + exp(-score * miniBatchSize / (docNum * totalWords)))
   }
 
 }
