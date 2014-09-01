@@ -14,7 +14,6 @@ class StreamingCorpus extends StanfordTokenizer with Corpus {
   var batchFileList: List[List[File]] = List.empty
   var curIndx = 0
 
-
   def docsSeen() = batchSize * curIndx
 
   def checkIfDone(): Boolean = if (curIndx < batchFileList.size - 1) true else false
@@ -40,9 +39,9 @@ class StreamingCorpus extends StanfordTokenizer with Corpus {
    * Get a bag-of-words representation of each document in the minibatch.
    * @return list of documents in minibatch in bag-of-words format.
    */
-  def getNextMiniBatch: List[HashMap[Int, Int]] = {
+  def getNextMiniBatch: List[List[(Int, Int)]] = {
 
-    var miniBatch: List[HashMap[Int, Int]] = List.empty
+    var miniBatch: List[List[(Int, Int)]] = List.empty
 
     val curMiniBatchFiles = batchFileList(curIndx)
 
@@ -60,7 +59,7 @@ class StreamingCorpus extends StanfordTokenizer with Corpus {
    * @param docFile Document file.
    * @return Document in bag-of-words format.
    */
-  def docBOW(docFile: File): HashMap[Int, Int] = {
+  def docBOW(docFile: File): List[(Int, Int)] = {
 
     var BOW: HashMap[Int, Int] = HashMap.empty
 
@@ -75,6 +74,6 @@ class StreamingCorpus extends StanfordTokenizer with Corpus {
 
       }
     }
-    BOW
+    BOW.toList
   }
 }

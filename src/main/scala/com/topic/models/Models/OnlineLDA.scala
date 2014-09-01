@@ -13,7 +13,7 @@ import com.topic.models.Corpus.StreamingCorpus
  */
 
 
-class SparkLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, decay: Double, docNum: Int) extends TopicModel {
+class SparkLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, decay: Double, docNum: Int, withPerplexity: Boolean = false) extends TopicModel {
 
   //initialise parameters
   val vocabulary = corpus.vocabulary
@@ -30,15 +30,6 @@ class SparkLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, deca
   val idToWord = vocabulary.map(_.swap)
 
   def getLambda = sstats + eta
-
-  /**
-   * Raw text input is transformed into bag-of-words format
-   * @return Bag-of-words format (i.e. list of (wordID, wordCount) tuples).
-   */
-  def getBOW(rawText: String): List[(Int, Int)] = {
-    val textIDs = rawText.split(" ").filter(vocabulary.contains(_)).map(word => vocabulary(word.toLowerCase)).toList
-    textIDs.groupBy(l => l).map(t => (t._1, t._2.length)).toList
-  }
 
 
   def eStep(miniBatch: List[List[(Int, Int)]], expELogBeta: DenseMatrix[Double]): (DenseMatrix[Double], DenseMatrix[Double]) = {
@@ -229,28 +220,31 @@ class SparkLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, deca
     score
   }
 
-  def inference(mb: List[String], withPerplexity: Boolean = false) = {
+  def inference() = {
 
-    val bow = mb.map(getBOW(_))
+    while (corpus.checkIfDone()) {
+      val mbBOW = corpus.getNextMiniBatch
 
-    //Get global parameter which gets updated after each mini-batch
-    val expELogBeta = exp(dirichletExpectation(getLambda))
+      //Get global parameter which gets updated after each mini-batch
+      val expELogBeta = exp(dirichletExpectation(getLambda))
 
-    //perfrom E-Step of LDA algorithm in parallel using minibatch and global parameter as input
-    val sstatsGammaTuple = eStep(bow, expELogBeta)
-    val sstatsLocal = sstatsGammaTuple._1
-    val gammaLocal = sstatsGammaTuple._2
+      //perfrom E-Step of LDA algorithm in parallel using minibatch and global parameter as input
+      val sstatsGammaTuple = eStep(mbBOW, expELogBeta)
+      val sstatsLocal = sstatsGammaTuple._1
+      val gammaLocal = sstatsGammaTuple._2
 
-    //Get perplexity of current minibatch. Only necessary for model comparison. Slows things down considerably!
-    if (withPerplexity) miniBatchPerplexity(bow, gammaLocal)
+      //Get perplexity of current minibatch. Only necessary for model comparison. Slows things down considerably!
+      if (withPerplexity) miniBatchPerplexity(mbBOW, gammaLocal)
 
-    //Blend local update from minibatch with global parameter
-    sstats = sstats + blend(rho, sstatsLocal)
+      //Blend local update from minibatch with global parameter
+      sstats = sstats + blend(rho, sstatsLocal)
 
-    //update other LDA parameters
-    postsSeen += miniBatchSize
-    numUpdates += 1
-    rho = pow(1.0 + numUpdates, -decay)
+      //update other LDA parameters
+      postsSeen += miniBatchSize
+      numUpdates += 1
+      rho = pow(1.0 + numUpdates, -decay)
+
+    }
 
   }
 
