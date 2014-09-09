@@ -1,4 +1,4 @@
-import com.topic.models.Models.collapsedGibbs
+import com.topic.models.models.collapsedGibbs
 import org.scalatest._
 
 class CorpusSpec extends FlatSpec with Matchers {

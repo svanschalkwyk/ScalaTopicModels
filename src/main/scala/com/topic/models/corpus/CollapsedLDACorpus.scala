@@ -1,12 +1,12 @@
-package com.topic.models.Corpus
+package com.topic.models.corpus
 
-import com.topic.models.Vocabulary.CountVocab
+import com.topic.models.vocabulary.CountVocab
 import breeze.linalg.DenseMatrix
 import java.io.File
 import scala.util.Random
-import com.topic.models.Tokenizer.StanfordTokenizer
+import com.topic.models.tokenizer.StanfordTokenizer
 import scala.collection.mutable.ListBuffer
-import com.topic.models.Word.Word
+import com.topic.models.word.Word
 import scala.collection.immutable.HashMap
 
 class CollapsedLDACorpus extends StanfordTokenizer with Corpus {

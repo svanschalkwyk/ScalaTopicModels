@@ -1,4 +1,4 @@
-package com.topic.models.Models
+package com.topic.models.models
 
 /**
  * Created by alex on 23/08/14.

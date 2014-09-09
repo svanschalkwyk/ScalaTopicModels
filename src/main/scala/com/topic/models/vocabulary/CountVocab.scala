@@ -1,9 +1,9 @@
-package com.topic.models.Vocabulary
+package com.topic.models.vocabulary
 
 import scala.collection.immutable.HashMap
 import java.io.File
 import scala.io.Source
-import com.topic.models.Tokenizer.StanfordTokenizer
+import com.topic.models.tokenizer.StanfordTokenizer
 
 
 object CountVocab {

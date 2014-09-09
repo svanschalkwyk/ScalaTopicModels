@@ -1,4 +1,4 @@
-package com.topic.models.Vocabulary
+package com.topic.models.vocabulary
 
 import scala.collection.immutable.HashMap
 

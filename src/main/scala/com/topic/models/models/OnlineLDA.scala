@@ -1,4 +1,4 @@
-package com.topic.models.Models
+package com.topic.models.models
 
 import breeze.linalg._
 import breeze.numerics._
@@ -6,7 +6,7 @@ import breeze.stats.distributions.Gamma
 import breeze.stats.mean
 
 import scala.collection.immutable.HashMap
-import com.topic.models.Corpus.StreamingCorpus
+import com.topic.models.corpus.StreamingCorpus
 
 /**
  * Created by aminnaar on 2014-08-20.

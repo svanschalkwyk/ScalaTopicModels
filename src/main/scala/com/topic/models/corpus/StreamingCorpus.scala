@@ -1,8 +1,8 @@
-package com.topic.models.Corpus
+package com.topic.models.corpus
 
 import java.io.File
-import com.topic.models.Tokenizer.StanfordTokenizer
-import com.topic.models.Vocabulary.CountVocab
+import com.topic.models.tokenizer.StanfordTokenizer
+import com.topic.models.vocabulary.CountVocab
 import scala.collection.immutable.HashMap
 
 

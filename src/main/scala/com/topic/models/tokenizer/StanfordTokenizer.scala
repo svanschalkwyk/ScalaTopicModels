@@ -1,4 +1,4 @@
-package com.topic.models.Tokenizer
+package com.topic.models.tokenizer
 
 import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 import java.io.{StringReader, FileReader}

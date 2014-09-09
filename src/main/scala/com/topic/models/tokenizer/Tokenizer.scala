@@ -1,4 +1,4 @@
-package com.topic.models.Tokenizer
+package com.topic.models.tokenizer
 
 import java.io.File
 

@@ -1,4 +1,4 @@
-package com.topic.models.Corpus
+package com.topic.models.corpus
 
 /**
  * Created by alex on 23/08/14.
