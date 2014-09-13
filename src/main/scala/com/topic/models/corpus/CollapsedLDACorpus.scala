@@ -9,24 +9,13 @@ import scala.collection.mutable.ListBuffer
 import com.topic.models.word.Word
 import scala.collection.immutable.HashMap
 
-class CollapsedLDACorpus extends StanfordTokenizer with Corpus {
+class CollapsedLDACorpus(numTopics: Int, docsDirectory: String, minCount: Int) extends StanfordTokenizer with Corpus {
 
-  var vocabulary: HashMap[String, Int] = HashMap.empty
-  var numTopics: Int = 0
-  var docsDirectory: String = ""
+  var numDocs = new File(docsDirectory).listFiles.size
+  var vocabulary = CountVocab(docsDirectory, minCount).getVocabulary
+  var docTopicMatrix = DenseMatrix.zeros(numDocs, numTopics)
+  var topicWordMatrix = DenseMatrix.zeros(numTopics, vocabulary.size)
   var words: ListBuffer[Word] = ListBuffer.empty
-  var numDocs: Int = 0
-  var docTopicMatrix: DenseMatrix[Double] = _
-  var topicWordMatrix: DenseMatrix[Double] = _
-
-  def setParams(topics: Int, directory: String, minCount: Int) = {
-    numTopics = topics
-    docsDirectory = directory
-    docTopicMatrix = DenseMatrix.zeros(numDocs, numTopics)
-    topicWordMatrix = DenseMatrix.zeros(numTopics, vocabulary.size)
-    vocabulary = CountVocab(docsDirectory, minCount).getVocabulary
-    numDocs = new File(docsDirectory).listFiles.size
-  }
 
   def initialize = {
 
@@ -35,10 +24,10 @@ class CollapsedLDACorpus extends StanfordTokenizer with Corpus {
     def docProcessor(docFile: File) = {
       var dLength = 0
       val randomTopicGenerator = new Random
-      docIndex += 1
-
       val tokenizer = new StanfordTokenizer
       val tokens = tokenizer.tokenizeFile(docFile)
+
+      docIndex += 1
 
       for (token <- tokens) {
         dLength += 1
@@ -50,12 +39,9 @@ class CollapsedLDACorpus extends StanfordTokenizer with Corpus {
           words += Word(token, docIndex, topic)
           docTopicMatrix(docIndex, topic) += 1.0
           topicWordMatrix(topic, vocabulary(token)) += 1.0
-
         }
-
       }
     }
-
     new File(docsDirectory).listFiles.toIterator.filter(_.isFile).toList.map(docFile => docProcessor(docFile))
   }
 

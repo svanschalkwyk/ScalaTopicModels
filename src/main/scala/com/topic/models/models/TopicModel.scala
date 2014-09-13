@@ -6,4 +6,6 @@ package com.topic.models.models
 trait TopicModel {
 
   def inference: Unit
+
+  def printTopics: Unit
 }

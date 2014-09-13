@@ -147,7 +147,7 @@ class SparkLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, deca
    * Print the topics learned by the LDA model.
    * @param numWords Number of words to display for each topic.
    */
-  def showTopics(numWords: Int) {
+  def printTopics(numWords: Int) {
 
     var sortMap = HashMap[String, Double]()
     val curLambda: DenseMatrix[Double] = getLambda
