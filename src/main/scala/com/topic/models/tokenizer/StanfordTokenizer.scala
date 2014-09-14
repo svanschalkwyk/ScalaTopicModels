@@ -4,7 +4,6 @@ import edu.stanford.nlp.process.{CoreLabelTokenFactory, PTBTokenizer}
 import java.io.{StringReader, FileReader}
 import scala.collection.JavaConversions._
 
-
 /**
  * Tokenizer as implemented by the Stanford tokenizer.  The tokenizer returns a list of tokens.
  */

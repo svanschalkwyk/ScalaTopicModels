@@ -61,7 +61,7 @@ class StreamingCorpus(batchSize: Int, docsDirectory: String, minCount: Int) exte
     for (token <- tokens) {
       if (vocabulary.contains(token)) {
 
-        if (BOW.contains(vocabulary(token))) BOW += (vocabulary(token) -> (BOW(token) + 1))
+        if (BOW.contains(vocabulary(token))) BOW += (vocabulary(token) -> (BOW(vocabulary(token)) + 1))
         else BOW += (vocabulary(token) -> 1)
 
       }

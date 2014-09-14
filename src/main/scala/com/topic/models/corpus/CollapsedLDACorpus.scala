@@ -13,8 +13,8 @@ class CollapsedLDACorpus(numTopics: Int, docsDirectory: String, minCount: Int) e
 
   var numDocs = new File(docsDirectory).listFiles.size
   var vocabulary = CountVocab(docsDirectory, minCount).getVocabulary
-  var docTopicMatrix = DenseMatrix.zeros(numDocs, numTopics)
-  var topicWordMatrix = DenseMatrix.zeros(numTopics, vocabulary.size)
+  var docTopicMatrix = DenseMatrix.zeros[Double](numDocs, numTopics)
+  var topicWordMatrix = DenseMatrix.zeros[Double](numTopics, vocabulary.size)
   var words: ListBuffer[Word] = ListBuffer.empty
 
   def initialize = {

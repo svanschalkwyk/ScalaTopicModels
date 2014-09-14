@@ -8,12 +8,10 @@ import breeze.stats.mean
 import scala.collection.immutable.HashMap
 import com.topic.models.corpus.StreamingCorpus
 
-/**
- * Created by aminnaar on 2014-08-20.
- */
 
 
-class SparkLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, decay: Double, docNum: Int, withPerplexity: Boolean = false) extends TopicModel {
+
+class OnlineLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, decay: Double, docNum: Int, withPerplexity: Boolean = false) extends TopicModel {
 
   //initialise parameters
   val vocabulary = corpus.vocabulary
@@ -35,8 +33,7 @@ class SparkLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, deca
   def eStep(miniBatch: List[List[(Int, Int)]], expELogBeta: DenseMatrix[Double]): (DenseMatrix[Double], DenseMatrix[Double]) = {
 
     //If testing, want to keep this non-random
-    val gamma = DenseMatrix[Double](miniBatch.length, numTopics, Gamma(100.0, 1.0 / 100.0).sample(numTopics * miniBatch.length).toArray)
-
+    val gamma = new DenseMatrix[Double](miniBatch.length, numTopics, Gamma(100.0, 1.0 / 100.0).sample(numTopics * miniBatch.length).toArray)
 
     val eLogTheta = dirichletExpectation(gamma)
     val expELogTheta = exp(eLogTheta)

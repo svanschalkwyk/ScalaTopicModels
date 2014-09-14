@@ -7,5 +7,5 @@ trait TopicModel {
 
   def inference: Unit
 
-  def printTopics: Unit
+  def printTopics(numWords:Int): Unit
 }
