@@ -1,15 +1,14 @@
 package com.topic.models.corpus
 
-import java.io.File
 import com.topic.models.tokenizer.StanfordTokenizer
-import com.topic.models.vocabulary.CountVocab
 import scala.collection.immutable.HashMap
+import scala.io.Source
 
 
-class StreamingCorpus(batchSize: Int, docsDirectory: String, minCount: Int) extends StanfordTokenizer with Corpus {
+class StreamingCorpus(vocab: HashMap[String, Int], batchSize: Int, docsList: List[String]) extends StanfordTokenizer with Corpus {
 
-  var vocabulary = CountVocab(docsDirectory, minCount).getVocabulary
-  var batchFileList: List[List[File]] = List.empty
+  var vocabulary = vocab
+  var batchFileList: List[List[String]] = List.empty
   var curIndx = 0
 
   def docsSeen() = batchSize * curIndx
@@ -20,11 +19,9 @@ class StreamingCorpus(batchSize: Int, docsDirectory: String, minCount: Int) exte
    * Get the list of files to stream through and split them into minibatches.
    */
   def initialize = {
-    //List all of the files in the document directory
-    val fileList = new File(docsDirectory).listFiles.toList
 
     //Split the files into minibatches
-    batchFileList = fileList.grouped(batchSize).toList
+    batchFileList = docsList.grouped(batchSize).toList
   }
 
   /**
@@ -33,17 +30,17 @@ class StreamingCorpus(batchSize: Int, docsDirectory: String, minCount: Int) exte
    */
   def getNextMiniBatch: List[List[(Int, Int)]] = {
 
-    var miniBatch: List[List[(Int, Int)]] = List.empty
+    var miniBatch: Vector[List[(Int, Int)]] = Vector.empty
 
     val curMiniBatchFiles = batchFileList(curIndx)
 
     for (batchFile <- curMiniBatchFiles) {
-      miniBatch = miniBatch ++ List(docBOW(batchFile))
+      miniBatch :+= docBOW(batchFile)
     }
 
     curIndx += 1
 
-    miniBatch
+    miniBatch.toList
   }
 
   /**
@@ -51,12 +48,12 @@ class StreamingCorpus(batchSize: Int, docsDirectory: String, minCount: Int) exte
    * @param docFile Document file.
    * @return Document in bag-of-words format.
    */
-  def docBOW(docFile: File): List[(Int, Int)] = {
+  def docBOW(docFile: String): List[(Int, Int)] = {
 
     var BOW: HashMap[Int, Int] = HashMap.empty
 
     val tokenizer = new StanfordTokenizer
-    val tokens = tokenizer.tokenizeFile(docFile)
+    val tokens = tokenizer.tokenizeString(Source.fromFile(docFile).getLines.mkString)
 
     for (token <- tokens) {
       if (vocabulary.contains(token)) {
