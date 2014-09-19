@@ -1,4 +1,4 @@
-package com.topic.models.word
+package com.topic.models.Word
 
 /**
  * Created by alex on 23/08/14.

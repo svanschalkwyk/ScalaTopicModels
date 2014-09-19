@@ -4,6 +4,7 @@ import scala.collection.immutable.HashMap
 import java.io.File
 import scala.io.Source
 import com.topic.models.tokenizer.StanfordTokenizer
+import com.topic.models.vocabulary.Vocabulary
 
 
 object CountVocab {

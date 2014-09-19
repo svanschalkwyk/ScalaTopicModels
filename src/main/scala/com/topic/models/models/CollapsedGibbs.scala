@@ -3,7 +3,7 @@ package com.topic.models.models
 import breeze.stats.distributions.Multinomial
 import breeze.linalg.{Axis, sum, DenseVector}
 import com.topic.models.corpus.CollapsedLDACorpus
-import com.topic.models.word.Word
+import com.topic.models.Word.Word
 
 
 /**

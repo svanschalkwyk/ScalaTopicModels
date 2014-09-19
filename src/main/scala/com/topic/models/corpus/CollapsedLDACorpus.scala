@@ -1,15 +1,16 @@
 package com.topic.models.corpus
 
-import breeze.linalg.DenseMatrix
 import scala.util.Random
-import com.topic.models.tokenizer.StanfordTokenizer
-import com.topic.models.word.Word
+import com.topic.models.Word.Word
 import scala.collection.immutable.HashMap
 import scala.io.Source._
+import com.topic.models.tokenizer.StanfordTokenizer
+import java.io.File
+import breeze.linalg.DenseMatrix
 
-class CollapsedLDACorpus(vocab: HashMap[String, Int], numTopics: Int, docsList: List[String]) extends StanfordTokenizer with Corpus {
+class CollapsedLDACorpus(vocab: HashMap[String, Int], numTopics: Int, docsDirectory: String) extends StanfordTokenizer with Corpus {
 
-  var numDocs = docsList.size
+  val numDocs = new File(docsDirectory).listFiles.toIterator.filter(_.getName.endsWith(".txt")).size
   val vocabulary = vocab
   var docTopicMatrix = DenseMatrix.zeros[Double](numDocs, numTopics)
   var topicWordMatrix = DenseMatrix.zeros[Double](numTopics, vocabulary.size)
@@ -40,10 +41,12 @@ class CollapsedLDACorpus(vocab: HashMap[String, Int], numTopics: Int, docsList: 
   }
 
   def initialize = {
-    docsList.map(doc => processDoc(fromFile(doc).getLines.mkString))
+    new File(docsDirectory).listFiles.toIterator.filter(_.getName.endsWith(".txt")).toList.map(docFile => processDoc(fromFile(docFile).getLines().mkString))
   }
 
   def reverseVocab: HashMap[Int, String] = {
     vocabulary.map(_ swap)
   }
 }
+
+
