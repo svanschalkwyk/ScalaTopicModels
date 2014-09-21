@@ -7,7 +7,8 @@ import scala.collection.JavaConversions._
 /**
  * Tokenizer as implemented by the Stanford tokenizer.  The tokenizer returns a list of tokens.
  */
-class StanfordTokenizer extends Tokenizer {
+
+object StanfordTokenizer extends Tokenizer{
 
   def tokenizeFile(docFile: java.io.File) = new PTBTokenizer(new FileReader(docFile), new CoreLabelTokenFactory(), "").tokenize.map(x => x.word().toLowerCase).toList
 

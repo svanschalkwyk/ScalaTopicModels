@@ -4,7 +4,6 @@ import scala.collection.immutable.HashMap
 import java.io.File
 import scala.io.Source
 import com.topic.models.tokenizer.StanfordTokenizer
-import com.topic.models.vocabulary.Vocabulary
 
 
 object CountVocab {
@@ -16,7 +15,7 @@ object CountVocab {
  * @param filePath the location of the document files.
  * @param minCount the minimum word frequency for a word to appear in the vocabulary.
  */
-class CountVocab(filePath: String, minCount: Int) extends StanfordTokenizer with Vocabulary {
+class CountVocab(filePath: String, minCount: Int) extends Vocabulary {
 
   val stopWords = Source.fromURL(getClass.getResource("/stopWords/english_stops_words.txt")).mkString.split("\n").toSet
 
@@ -28,8 +27,7 @@ class CountVocab(filePath: String, minCount: Int) extends StanfordTokenizer with
 
     def countWords(docFile: File) {
 
-      val tokenizer = new StanfordTokenizer
-      val tokens = tokenizer.tokenizeFile(docFile)
+      val tokens = StanfordTokenizer.tokenizeFile(docFile)
 
       for (token <- tokens) {
 

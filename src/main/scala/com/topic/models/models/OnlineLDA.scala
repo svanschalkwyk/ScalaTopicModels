@@ -9,8 +9,6 @@ import scala.collection.immutable.HashMap
 import com.topic.models.corpus.StreamingCorpus
 
 
-
-
 class OnlineLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, decay: Double, docNum: Int, withPerplexity: Boolean = false) extends TopicModel {
 
   //initialise parameters

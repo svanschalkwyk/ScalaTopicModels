@@ -9,9 +9,7 @@ class TokenizerSpec extends FlatSpec with Matchers{
 
     val correctTokenization=List("my","dog","went","to","the","park",".","it","sniffed","some","flowers","-lrb-","which","were","green","-rrb-","!")
 
-    val tokenizer=new StanfordTokenizer()
-
-    val resultTokenization=tokenizer.tokenizeString(testString)
+    val resultTokenization=StanfordTokenizer.tokenizeString(testString)
 
     correctTokenization should equal (resultTokenization)
 
