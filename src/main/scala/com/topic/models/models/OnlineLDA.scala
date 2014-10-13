@@ -9,10 +9,11 @@ import scala.collection.immutable.HashMap
 import com.topic.models.corpus.StreamingCorpus
 
 
-class OnlineLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, decay: Double, docNum: Int, withPerplexity: Boolean = false) extends TopicModel {
+class OnlineLDA(corpus: StreamingCorpus, numTopics: Int, decay: Double, docNum: Int, withPerplexity: Boolean = false) extends TopicModel {
 
   //initialise parameters
   val vocabulary = corpus.vocabulary
+  val miniBatchSize=corpus.batchSize
   var postsSeen = 0
   var numUpdates = 0
   var rho = 0.0
@@ -39,7 +40,6 @@ class OnlineLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, dec
 
     for ((doc, idx) <- miniBatch.zipWithIndex) {
 
-      //Gensim sorts list by wordID, I'm not sure if this is necessary.
       val idCtList = doc.toList.sortBy(_._1)
       val wordIDs = idCtList.map(_._1)
       val cts = idCtList.map(_._2.toDouble)
@@ -102,8 +102,7 @@ class OnlineLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, dec
 
     sstats = sstats :* expELogBeta
 
-    return (gamma, sstats)
-
+    (gamma, sstats)
   }
 
 
@@ -157,7 +156,6 @@ class OnlineLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, dec
       }
       //Now sort by probability, take first n words and print them.
       println("Topic #" + topic + ": " + sortMap.toList.sortBy(-_._2).take(numWords))
-
     }
   }
 
@@ -188,14 +186,11 @@ class OnlineLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, dec
         var tmax = max(temp)
 
         phiNorm(id_idx) = breeze.numerics.log(sum(exp(temp - tmax))) + tmax
-
       }
 
       val docCounts = DenseVector(wordCts.toArray)
 
       score += sum(docCounts :* phiNorm)
-
-
     }
 
     score += sum(((-gamma) + alpha) :* eLogTheta)
@@ -225,22 +220,23 @@ class OnlineLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, dec
 
       //perfrom E-Step of LDA algorithm in parallel using minibatch and global parameter as input
       val sstatsGammaTuple = eStep(mbBOW, expELogBeta)
-      val sstatsLocal = sstatsGammaTuple._1
-      val gammaLocal = sstatsGammaTuple._2
+      val gammaLocal = sstatsGammaTuple._1
+      val sstatsLocal = sstatsGammaTuple._2
 
       //Get perplexity of current minibatch. Only necessary for model comparison. Slows things down considerably!
       if (withPerplexity) miniBatchPerplexity(mbBOW, gammaLocal)
 
       //Blend local update from minibatch with global parameter
-      sstats = sstats + blend(rho, sstatsLocal)
+      //println(sstats.cols,sstats.rows)
+      //val blendParam=blend(rho,sstatsLocal)
+      //println(blendParam.cols,blendParam.cols)
+      sstats = sstats + blend(rho,sstatsLocal)
 
       //update other LDA parameters
       postsSeen += miniBatchSize
       numUpdates += 1
       rho = pow(1.0 + numUpdates, -decay)
-
     }
-
   }
 
   def miniBatchPerplexity(bow: List[List[(Int, Int)]], gamma: DenseMatrix[Double]) {
@@ -252,6 +248,5 @@ class OnlineLDA(corpus: StreamingCorpus, miniBatchSize: Int, numTopics: Int, dec
 
     println("Minibatch perplexity: " + exp(-score * miniBatchSize / (docNum * totalWords)))
   }
-
 }
 

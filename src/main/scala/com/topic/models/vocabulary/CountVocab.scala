@@ -4,7 +4,7 @@ import scala.collection.immutable.HashMap
 import java.io.File
 import scala.io.Source
 import com.topic.models.tokenizer.StanfordTokenizer
-
+import scala.util.matching.Regex
 
 object CountVocab {
   def apply(fp: String, mc: Int) = new CountVocab(fp, mc)
@@ -17,7 +17,7 @@ object CountVocab {
  */
 class CountVocab(filePath: String, minCount: Int) extends Vocabulary {
 
-  val stopWords = Source.fromURL(getClass.getResource("/stopWords/english_stops_words.txt")).mkString.split("\n").toSet
+  val stopWords = Source.fromURL(getClass.getResource("/english_stops_words.txt")).mkString.split("\n").toSet
 
   def getVocabulary: HashMap[String, Int] = {
 
@@ -34,7 +34,7 @@ class CountVocab(filePath: String, minCount: Int) extends Vocabulary {
         if (wordCounter.contains(token)) {
           wordCounter += (token -> (wordCounter(token) + 1))
         }
-        else if (!stopWords.contains(token) && token.length > 2 && token.length < 15 && token != "-lrb-" && token != "-rrb-") {
+        else if (!stopWords.contains(token) && !token.matches("\\p{Punct}") && token.length > 2 && token.length < 15 && token != "-lrb-" && token != "-rrb-") {
           wordCounter += (token -> 1)
         }
       }
@@ -45,7 +45,6 @@ class CountVocab(filePath: String, minCount: Int) extends Vocabulary {
     for ((w, freq) <- wordCounter) {
       if (freq >= minCount) {
         vocabulary += (w -> vocabulary.size)
-
       }
     }
 

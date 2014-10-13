@@ -5,8 +5,9 @@ import scala.io.Source
 import java.io.File
 import com.topic.models.utils.DocUtils
 
-class StreamingCorpus(vocab: HashMap[String, Int], batchSize: Int, docsDirectory: String) extends Corpus {
+class StreamingCorpus(vocab: HashMap[String, Int], batchS: Int, docsDirectory: String) extends Corpus {
 
+  val batchSize=batchS
   var vocabulary = vocab
   var batchFileList: List[List[File]] = List.empty
   var curIndx = 0
@@ -14,6 +15,8 @@ class StreamingCorpus(vocab: HashMap[String, Int], batchSize: Int, docsDirectory
   def docsSeen() = batchSize * curIndx
 
   def checkIfDone(): Boolean = if (curIndx < batchFileList.size - 1) true else false
+
+  initialize
 
   def initialize = {
 
@@ -29,8 +32,7 @@ class StreamingCorpus(vocab: HashMap[String, Int], batchSize: Int, docsDirectory
     val curMiniBatchFiles = batchFileList(curIndx)
 
     for (batchFile <- curMiniBatchFiles) {
-
-      val contents = Source.fromFile(batchFile).getLines().mkString
+      val contents = Source.fromFile(batchFile,"ISO-8859-5").getLines().mkString
       miniBatch :+= DocUtils.getBOW(contents, vocab)
     }
 
